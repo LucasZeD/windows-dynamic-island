@@ -21,6 +21,11 @@ pub const FULLSCREEN_EVENT: &str = "island://fullscreen";
 pub const PRESS_OUTSIDE_EVENT: &str = "island://press-outside";
 /// Tray "Recenter": the frontend snaps the island back to the middle.
 pub const RECENTER_EVENT: &str = "island://recenter";
+/// Where the window in front keeps its minimize / maximize / close buttons, as
+/// `[left, right]` in the island window's CSS px (`null`: nowhere near the top
+/// edge). The resting island slides aside so it doesn't cover them.
+pub const AVOID_EVENT: &str = "island://avoid";
+
 /// Shortest the strip gets, in logical pixels: the frontend's `MAX_HEIGHT`
 /// plus room for the island's shadow and spring overshoot. On most screens it
 /// is taller (see `display::strip_height`), so tall panels (the chats) fit.
@@ -193,6 +198,7 @@ pub fn spawn_hit_test(app: AppHandle) {
         let mut button_down = false;
         let mut pressed_inside = false;
         let mut file_drag = false;
+        let mut avoid: Option<[i32; 2]> = None;
         loop {
             std::thread::sleep(Duration::from_millis(25));
             let Some(win) = app.get_webview_window(ISLAND_LABEL) else {
@@ -217,6 +223,13 @@ pub fn spawn_hit_test(app: AppHandle) {
             tick = tick.wrapping_add(1);
             if tick.is_multiple_of(4) {
                 track_foreground(&app);
+            }
+            if tick.is_multiple_of(8) {
+                let now = caption_buttons(&win);
+                if now != avoid {
+                    avoid = now;
+                    let _ = app.emit(AVOID_EVENT, now);
+                }
             }
 
             let fg = foreground_window();
@@ -268,6 +281,61 @@ pub fn spawn_hit_test(app: AppHandle) {
             }
         }
     });
+}
+
+/// Width (logical px) of the caption buttons at a window's top right corner.
+const CAPTION_BUTTONS: f64 = 150.0;
+/// How far below the top of the island's strip a title bar still counts (logical px).
+const CAPTION_REACH: f64 = 60.0;
+
+/// The caption buttons of the window in front, when its title bar runs along
+/// the island's edge of the screen: `[left, right]` in the island's CSS px.
+#[cfg(windows)]
+fn caption_buttons(island: &WebviewWindow) -> Option<[i32; 2]> {
+    use windows::Win32::Foundation::RECT;
+    use windows::Win32::Graphics::Dwm::{DWMWA_EXTENDED_FRAME_BOUNDS, DwmGetWindowAttribute};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetForegroundWindow, GetWindowThreadProcessId, IsZoomed,
+    };
+
+    let fg = unsafe { GetForegroundWindow() };
+    if fg.is_invalid() {
+        return None;
+    }
+    // Ours (the island, a chat page, settings): nothing to make room for.
+    let mut pid = 0u32;
+    unsafe { GetWindowThreadProcessId(fg, Some(&mut pid)) };
+    if pid == std::process::id() {
+        return None;
+    }
+    // Maximized: its buttons are in the screen's corner, far from the island.
+    if unsafe { IsZoomed(fg) }.as_bool() {
+        return None;
+    }
+    let mut rect = RECT::default();
+    unsafe {
+        DwmGetWindowAttribute(
+            fg,
+            DWMWA_EXTENDED_FRAME_BOUNDS,
+            &mut rect as *mut _ as *mut _,
+            std::mem::size_of::<RECT>() as u32,
+        )
+    }
+    .ok()?;
+    let origin = island.outer_position().ok()?;
+    let scale = island.scale_factor().ok()?;
+    let top = (rect.top - origin.y) as f64 / scale;
+    if !(-8.0..=CAPTION_REACH).contains(&top) {
+        return None;
+    }
+    let right = (rect.right - origin.x) as f64 / scale;
+    let left = right - CAPTION_BUTTONS.min((rect.right - rect.left) as f64 / scale);
+    Some([left.round() as i32, right.round() as i32])
+}
+
+#[cfg(not(windows))]
+fn caption_buttons(_: &WebviewWindow) -> Option<[i32; 2]> {
+    None
 }
 
 /// The frontend's rects in physical screen pixels, as of the last hit-test
