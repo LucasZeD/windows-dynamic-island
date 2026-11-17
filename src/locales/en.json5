@@ -345,7 +345,14 @@
     },
     notifyCommits: {
       label: "New commits",
-      desc: "A toast when someone pushes to a followed repository's main branch. Busy repositories push often.",
+      desc: "A toast when someone pushes to the branch followed in a repository (its default one unless chosen below). Busy repositories push often.",
+    },
+    branch: {
+      label: "Branch followed for commits",
+      default: "Default branch",
+      // {name}: e.g. main
+      defaultNamed: "{name} (default)",
+      loading: "Loading branches…",
     },
     badge: {
       release: "Release",

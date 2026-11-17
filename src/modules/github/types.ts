@@ -19,6 +19,7 @@ export interface GithubRepoInfo {
 	description: string | null;
 	/** ISO 8601. */
 	pushedAt: string | null;
+	defaultBranch: string | null;
 }
 
 export interface GithubRelease {
@@ -41,6 +42,8 @@ export interface GithubCommit {
 export interface GithubRepo {
 	/** `owner/name`. */
 	name: string;
+	/** Followed for commits; null: the default branch. */
+	branch: string | null;
 	openIssues: number | null;
 	latest: GithubIssue | null;
 	error: GithubErrorCode | null;
@@ -56,6 +59,8 @@ export interface GithubUpdate {
 	kind: "release" | "commit";
 	/** The tag, or the commit's first line. */
 	title: string;
+	/** The commit's branch, when not the default one. */
+	branch: string | null;
 	url: string;
 	seenAt: number;
 }

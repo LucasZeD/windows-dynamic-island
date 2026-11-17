@@ -2,12 +2,12 @@ import { CircleDotIcon, XIcon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { Button, IconButton, LinkButton } from "../../../components/ui/button";
 import { Block, Desc, Divider, List, ListItem, Row } from "../../../components/ui/card";
-import { Input } from "../../../components/ui/form";
+import { Input, Select } from "../../../components/ui/form";
 import { providerAction, useProvider } from "../../../core/bridge";
 import { useT } from "../../../core/i18n";
 import { setSetting, useSetting } from "../../../core/settings";
 import { formatCount, parseRepo } from "../repo";
-import { githubRepos } from "../settings";
+import { githubBranches, githubRepos } from "../settings";
 import type { GithubState } from "../types";
 
 const TOKEN_URL = "https://github.com/settings/tokens/new?scopes=repo&description=Dynamic%20Island";
@@ -27,6 +27,7 @@ function Repos() {
 	const t = useT();
 	const state = useProvider<GithubState>("github");
 	const repos = useSetting(githubRepos);
+	const branches = useSetting(githubBranches);
 	const [input, setInput] = useState("");
 	const [error, setError] = useState<string | null>(null);
 
@@ -77,16 +78,23 @@ function Repos() {
 										</span>
 									)
 								)}
+								<BranchSelect
+									repo={name}
+									value={branches[name] ?? ""}
+									defaultBranch={repo?.info?.defaultBranch ?? null}
+									onChange={(branch) => setSetting(githubBranches, withBranch(branches, name, branch))}
+								/>
 								<IconButton
 									size="sm"
 									tone="danger"
 									title={t("github.repos.remove")}
-									onClick={() =>
+									onClick={() => {
 										setSetting(
 											githubRepos,
 											repos.filter((r) => r !== name),
-										)
-									}
+										);
+										setSetting(githubBranches, withBranch(branches, name, ""));
+									}}
 								>
 									<XIcon size={12} />
 								</IconButton>
@@ -96,6 +104,70 @@ function Repos() {
 				</List>
 			)}
 		</Block>
+	);
+}
+
+/** `branches` with `repo` following `branch` ("" for the default one). */
+function withBranch(branches: Record<string, string>, repo: string, branch: string) {
+	const next = { ...branches };
+	if (branch) next[repo] = branch;
+	else delete next[repo];
+	return next;
+}
+
+/**
+ * The branch a repo follows for commits. The list comes from GitHub when the
+ * pointer gets near (one call per repo, only for the repos looked at).
+ */
+function BranchSelect({
+	repo,
+	value,
+	defaultBranch,
+	onChange,
+}: {
+	repo: string;
+	value: string;
+	defaultBranch: string | null;
+	onChange: (branch: string) => void;
+}) {
+	const t = useT();
+	const [names, setNames] = useState<string[] | null>(null);
+	const [loading, setLoading] = useState(false);
+	const load = () => {
+		if (names || loading) return;
+		setLoading(true);
+		providerAction("github", "branches", { repo })
+			.then((list) => setNames(Array.isArray(list) ? (list as string[]) : []))
+			.catch(() => setNames([]))
+			.finally(() => setLoading(false));
+	};
+	// The chosen branch stays listed even before (or without) GitHub's list.
+	const options = [...new Set([...(names ?? []), ...(value ? [value] : [])])].filter((b) => b !== defaultBranch);
+
+	return (
+		<Select
+			size="sm"
+			className="max-w-36"
+			value={value}
+			title={t("github.branch.label")}
+			onPointerEnter={load}
+			onFocus={load}
+			onChange={(e) => onChange(e.target.value)}
+		>
+			<option value="">
+				{defaultBranch ? t("github.branch.defaultNamed", { name: defaultBranch }) : t("github.branch.default")}
+			</option>
+			{options.map((b) => (
+				<option key={b} value={b}>
+					{b}
+				</option>
+			))}
+			{loading && (
+				<option value="" disabled>
+					{t("github.branch.loading")}
+				</option>
+			)}
+		</Select>
 	);
 }
 

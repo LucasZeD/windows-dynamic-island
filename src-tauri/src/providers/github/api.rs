@@ -149,6 +149,7 @@ pub struct RepoInfo {
     pub description: Option<String>,
     /// ISO 8601: the last push to any branch.
     pub pushed_at: Option<String>,
+    pub default_branch: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -193,6 +194,7 @@ fn parse_repo_info(v: &Value) -> RepoInfo {
         language: text("language"),
         description: text("description"),
         pushed_at: text("pushed_at"),
+        default_branch: text("default_branch"),
     }
 }
 
@@ -220,18 +222,39 @@ fn parse_release(v: &Value) -> Option<Release> {
     })
 }
 
-/// The newest commit on the default branch; `None` for an empty repository.
-pub fn latest_commit(repo: &str, token: Option<&str>) -> Result<Option<Commit>, Error> {
-    match get(
-        &format!("/repos/{repo}/commits"),
-        &[("per_page", "1")],
-        token,
-    ) {
+/// The newest commit on `branch` (the default one when `None`); `None` for an
+/// empty repository.
+pub fn latest_commit(
+    repo: &str,
+    branch: Option<&str>,
+    token: Option<&str>,
+) -> Result<Option<Commit>, Error> {
+    let mut query = vec![("per_page", "1")];
+    if let Some(branch) = branch {
+        query.push(("sha", branch));
+    }
+    match get(&format!("/repos/{repo}/commits"), &query, token) {
         Ok(v) => Ok(v.get(0).and_then(parse_commit)),
         // An empty repository answers 409.
         Err(Error::Http) => Ok(None),
         Err(e) => Err(e),
     }
+}
+
+/// The repository's branch names (the first 100, as GitHub lists them).
+pub fn branches(repo: &str, token: Option<&str>) -> Result<Vec<String>, Error> {
+    let v = get(
+        &format!("/repos/{repo}/branches"),
+        &[("per_page", "100")],
+        token,
+    )?;
+    Ok(v.as_array()
+        .map(|list| {
+            list.iter()
+                .filter_map(|b| b["name"].as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default())
 }
 
 fn parse_commit(v: &Value) -> Option<Commit> {
@@ -266,8 +289,10 @@ mod tests {
     fn reads_a_repository() {
         let info = parse_repo_info(&json!({
             "stargazers_count": 1200, "forks_count": 34, "open_issues_count": 17,
-            "language": "Rust", "description": "  ", "pushed_at": "2026-11-17T10:00:00Z"
+            "language": "Rust", "description": "  ", "pushed_at": "2026-11-17T10:00:00Z",
+            "default_branch": "main"
         }));
+        assert_eq!(info.default_branch.as_deref(), Some("main"));
         assert_eq!(info.stars, 1200);
         assert_eq!(info.forks, 34);
         assert_eq!(info.open_issues_and_prs, 17);

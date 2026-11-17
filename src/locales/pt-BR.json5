@@ -318,7 +318,13 @@
     },
     notifyCommits: {
       label: "Novos commits",
-      desc: "Um aviso quando alguém faz push no branch principal de um repositório seguido. Repositórios movimentados fazem push com frequência.",
+      desc: "Um aviso quando alguém faz push no branch seguido de um repositório (o padrão, a menos que escolha outro abaixo). Repositórios movimentados fazem push com frequência.",
+    },
+    branch: {
+      label: "Branch seguido para commits",
+      default: "Branch padrão",
+      defaultNamed: "{name} (padrão)",
+      loading: "Carregando branches…",
     },
     badge: {
       release: "Release",
