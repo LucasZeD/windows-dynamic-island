@@ -124,9 +124,22 @@ fn target(app: &AppHandle, win: &WebviewWindow) -> Option<Monitor> {
     Some(screens.swap_remove(preferred).monitor)
 }
 
+/// Logical px the strip leaves free at the bottom of the screen: it never
+/// covers the whole monitor (Windows could take a window that does for a
+/// fullscreen app), and stays clear of most of the taskbar.
+const STRIP_GAP: f64 = 64.0;
+
+/// Strip height in physical px for a monitor `height` px tall at `scale`:
+/// nearly the whole screen, never less than `STRIP_HEIGHT`.
+fn strip_height(height: u32, scale: f64) -> u32 {
+    let min = (STRIP_HEIGHT * scale).round() as u32;
+    let most = height.saturating_sub((STRIP_GAP * scale).round() as u32);
+    most.max(min)
+}
+
 /// Window rect (physical px) that stretches the strip across `monitor`'s top.
 fn strip_rect(monitor: &Monitor) -> (PhysicalPosition<i32>, PhysicalSize<u32>) {
-    let height = (STRIP_HEIGHT * monitor.scale_factor()).round() as u32;
+    let height = strip_height(monitor.size().height, monitor.scale_factor());
     (
         *monitor.position(),
         PhysicalSize::new(monitor.size().width, height),
@@ -410,4 +423,19 @@ fn covered_monitors(app: &AppHandle) -> Vec<(i32, i32)> {
 #[cfg(not(windows))]
 fn covered_monitors(_: &AppHandle) -> Vec<(i32, i32)> {
     Vec::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_strip_is_nearly_the_screen_but_never_short() {
+        // 1440p at 100%: everything but the bottom 64 px.
+        assert_eq!(strip_height(1440, 1.0), 1376);
+        // 4K at 150%: 64 logical px = 96 physical.
+        assert_eq!(strip_height(2160, 1.5), 2064);
+        // A short screen still gets the minimum.
+        assert_eq!(strip_height(600, 1.0), 640);
+    }
 }

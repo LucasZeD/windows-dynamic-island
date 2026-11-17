@@ -16,6 +16,7 @@ pub mod calendar;
 pub mod claude;
 pub mod clipboard;
 pub mod codex;
+pub mod chat;
 pub mod credentials;
 pub mod cursor;
 pub mod find;
@@ -63,6 +64,7 @@ pub fn registry() -> Vec<Arc<dyn Provider>> {
         Arc::new(codex::CodexProvider),
         Arc::new(antigravity::AntigravityProvider::default()),
         Arc::new(cursor::CursorProvider::default()),
+        Arc::new(chat::ChatProvider::default()),
         Arc::new(github::GithubProvider::default()),
         Arc::new(monitor::MonitorProvider::default()),
         Arc::new(peripherals::PeripheralsProvider::default()),

@@ -3,9 +3,10 @@ import { motion, type Transition } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import { tv } from "tailwind-variants";
 import { command } from "../../core/bridge";
+import { cn } from "../../core/cn";
 import { useT } from "../../core/i18n";
 import type { ModuleEntry } from "../../core/types";
-import { LAUNCHER } from "../../core/useIslandController";
+import { ASK_TABS, LAUNCHER } from "../../core/useIslandController";
 
 const tabs = tv({
 	slots: {
@@ -16,6 +17,11 @@ const tabs = tv({
 		part: "relative grid place-items-center",
 		dot: "relative size-1.25 rounded-full bg-ok",
 		extra: "ml-auto flex items-center gap-1.5",
+		/** The Ask chats: one segmented switch at the right end. */
+		ask: "relative ml-auto flex h-7.5 items-center gap-0.5 rounded-full bg-white/6 p-0.75",
+		askItem:
+			"relative grid h-6 w-8 place-items-center rounded-full opacity-60 transition-opacity duration-200 hover:opacity-100",
+		askPill: "absolute inset-0 rounded-[inherit] bg-white/14 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]",
 		gear: "grid size-7.5 place-items-center rounded-full text-text-faint transition-colors duration-200 hover:bg-white/8 hover:text-text",
 		pin: "absolute top-1/2 right-0 grid size-7.5 -translate-y-1/2 place-items-center rounded-full text-text-faint transition-colors duration-200 hover:bg-white/8 hover:text-text",
 	},
@@ -24,6 +30,8 @@ const tabs = tv({
 		pinned: { true: { pin: "bg-white/10 text-text" } },
 		/** The launcher's grid button, pushed right with the gear. */
 		launcher: { true: { tab: "ml-auto w-7.5 justify-center p-0" } },
+		/** After the Ask switch, which already took the free space. */
+		afterAsk: { true: { tab: "ml-1.5", extra: "ml-1.5" } },
 		/** Windows Island: round icon tabs, ringed in the module's color. */
 		iconsOnly: {
 			true: {
@@ -69,9 +77,11 @@ export function Tabs({
 	const t = useT();
 	const s = tabs({ iconsOnly, bottom });
 	const pill = <motion.span layoutId="tab-pill" className={s.pill()} transition={transition} />;
+	const tools = entries.filter((e) => !ASK_TABS.includes(e.module.id));
+	const asks = entries.filter((e) => ASK_TABS.includes(e.module.id));
 	return (
 		<div className={s.base()}>
-			{entries.map(({ module, view }) => {
+			{tools.map(({ module, view }) => {
 				const selected = current === module.id;
 				return (
 					<button
@@ -90,9 +100,28 @@ export function Tabs({
 					</button>
 				);
 			})}
+			{asks.length > 0 && (
+				<div className={s.ask()}>
+					{asks.map(({ module, view }) => (
+						<button
+							type="button"
+							key={module.id}
+							className={cn(s.askItem(), current === module.id && "opacity-100")}
+							title={t(module.title)}
+							onClick={() => onSelect(module.id)}
+						>
+							{current === module.id && (
+								<motion.span layoutId="ask-pill" className={s.askPill()} transition={transition} />
+							)}
+							<span className="relative grid place-items-center">{view.icon}</span>
+							{view.active && current !== module.id && <span className={cn(s.dot(), "absolute top-0.5 right-1")} />}
+						</button>
+					))}
+				</div>
+			)}
 			<button
 				type="button"
-				className={s.tab({ active: current === LAUNCHER, launcher: true })}
+				className={s.tab({ active: current === LAUNCHER, launcher: true, afterAsk: asks.length > 0 })}
 				title={t("layout.launcher")}
 				onClick={(e) => {
 					e.stopPropagation();
@@ -106,7 +135,7 @@ export function Tabs({
 			</button>
 			{/* Sliders inside: pressing them must not drag the island. */}
 			{extra && (
-				<div className={s.extra()} data-no-drag>
+				<div className={s.extra({ afterAsk: asks.length > 0 })} data-no-drag>
 					{extra}
 				</div>
 			)}
