@@ -720,6 +720,28 @@
     },
   },
 
+  peripherals: {
+    title: "Periféricos",
+    loading: "Procurando dispositivos…",
+    empty: "Nenhum dispositivo sem fio encontrado",
+    emptyHint: "Acorde o dispositivo (mexa o mouse, aperte uma tecla) e feche o app do fabricante (G HUB, Synapse…).",
+    missing: "O auxiliar de bateria não está incluído nesta versão.",
+    restarting: "O auxiliar de bateria parou. Reiniciando…",
+    asleep: "Em repouso",
+    charging: "Carregando",
+    left: "{time} restantes",
+    hours: "{n} h",
+    minutes: "{n} min",
+    credit: "Suporte a dispositivos pelo Halo Battery",
+    low: "{name}: bateria fraca",
+    lowDetail: "{n}% restantes",
+    full: "{name} está totalmente carregado",
+    alerts: {
+      label: "Alertas",
+      desc: "Avisa quando um dispositivo chega ao nível de bateria fraca e quando termina de carregar.",
+    },
+  },
+
   clock: {
     title: "Relógio e calendário",
     today: "Hoje",

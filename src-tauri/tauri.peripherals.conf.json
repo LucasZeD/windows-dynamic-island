@@ -1,0 +1,7 @@
+{
+  "bundle": {
+    "resources": {
+      "../sidecars/peripherals/dist/halo-bridge/": "peripherals/"
+    }
+  }
+}

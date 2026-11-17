@@ -762,6 +762,35 @@
     },
   },
 
+  // Peripherals module: battery of wireless mice, keyboards, headsets and controllers,
+  // read by Halo Battery's device code (src-tauri/src/providers/peripherals.rs)
+  peripherals: {
+    title: "Peripherals",
+    loading: "Looking for devices…",
+    empty: "No wireless devices found",
+    emptyHint: "Wake the device (move the mouse, press a key) and close its maker's app (G HUB, Synapse…).",
+    missing: "The battery helper isn't included in this build.",
+    restarting: "The battery helper stopped. Restarting…",
+    asleep: "Asleep",
+    charging: "Charging",
+    // {time}: "3 h" or "40 min"
+    left: "{time} left",
+    // {n}: a number
+    hours: "{n} h",
+    minutes: "{n} min",
+    credit: "Device support by Halo Battery",
+    // Alert title. {name}: the device
+    low: "{name}: low battery",
+    // {n}: percentage left
+    lowDetail: "{n}% left",
+    // {name}: the device
+    full: "{name} is fully charged",
+    alerts: {
+      label: "Alerts",
+      desc: "Warns when a device falls to its low battery level, and when it's fully charged.",
+    },
+  },
+
   // Clock module
   clock: {
     title: "Clock & calendar",

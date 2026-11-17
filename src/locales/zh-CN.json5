@@ -777,6 +777,28 @@
   },
 
   // 时钟模块
+  peripherals: {
+    title: "外设",
+    loading: "正在查找设备…",
+    empty: "未找到无线设备",
+    emptyHint: "唤醒设备（移动鼠标、按一个键），并关闭厂商软件（G HUB、Synapse 等）。",
+    missing: "此版本未包含电池辅助程序。",
+    restarting: "电池辅助程序已停止，正在重启…",
+    asleep: "休眠中",
+    charging: "充电中",
+    left: "剩余 {time}",
+    hours: "{n} 小时",
+    minutes: "{n} 分钟",
+    credit: "设备支持来自 Halo Battery",
+    low: "{name}：电量低",
+    lowDetail: "剩余 {n}%",
+    full: "{name} 已充满",
+    alerts: {
+      label: "提醒",
+      desc: "设备电量降到低电量值时提醒，充满时也会提醒。",
+    },
+  },
+
   clock: {
     title: "时钟与日历",
     today: "今天",
