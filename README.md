@@ -65,6 +65,10 @@ The settings window takes on the same theme and material. **Preview** shows a sa
     <td align="center"><img src="docs/screenshots/look-windows-mono.png" width="380" alt="Windows Island with a thin mono rim" /><br /><sub>Windows Island · thin mono</sub></td>
     <td align="center"><img src="docs/screenshots/look-windows-aurora.png" width="380" alt="Windows Island with the Aurora gradient and glow" /><br /><sub>Windows Island · Aurora + glow</sub></td>
   </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/look-frosted-dark.png" width="380" alt="The island in the dark theme with frosted glass, open on the AI Agents tab" /><br /><sub>Dark · frosted glass</sub></td>
+    <td align="center"><img src="docs/screenshots/look-liquid-light.png" width="380" alt="The island in the light theme with Liquid Glass, open on the AI Agents tab" /><br /><sub>Light · Liquid Glass</sub></td>
+  </tr>
 </table>
 
 <p align="center">
@@ -100,6 +104,12 @@ The settings window takes on the same theme and material. **Preview** shows a sa
 - Click a session to open its project in VS Code
 - Also shows Codex sessions, and the plan usage of Cursor and Antigravity
 - When a session finishes, a toast drops below the island (one per session, stacking up) with a short sound
+
+<p align="center">
+  <img src="docs/screenshots/bubble.png" width="174" alt="Resting orb with a speech bubble: Claude Code is thinking" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/toasts.png" width="290" alt="Stacked toasts below the orb: a Claude Code session finished" />
+</p>
 
 **Ask Claude**: a conversation with Claude right in the island, using your Claude Code login (no API key).
 
@@ -152,6 +162,10 @@ The settings window takes on the same theme and material. **Preview** shows a sa
 - Optionally pops open when someone opens a new issue
 - Works anonymously for public repos (details then refresh every 30 minutes); uses your GitHub CLI login automatically, or a token kept in the Windows Credential Manager for private repos
 
+<p align="center">
+  <img src="docs/screenshots/github.png" width="580" alt="GitHub panel: a repository unfolded into stars, forks, language, latest release, commit and issue" />
+</p>
+
 **System monitor**: CPU, memory, GPU and network with a chart of the last minute, measured like Task Manager does.
 
 - Values slide from green to red as usage climbs
@@ -160,7 +174,15 @@ The settings window takes on the same theme and material. **Preview** shows a sa
 
 **Peripherals**: the battery of wireless mice, keyboards, headsets and controllers (30+ brands, among them Razer, Logitech, SteelSeries, HyperX, Corsair, ASUS ROG, Sony, Xbox, Nintendo and 8BitDo), read by [Halo Battery](https://github.com/HeyOkay/HaloBattery)'s device code. Levels use the system monitor's colors (red at the device's alert level), with alerts when a device runs low or is fully charged. Windows only, and only in builds made with `bun run app:build:personal`.
 
-**Sound**: **Settings → Sound** sets the volume of every sound the island plays and the sound for finished tasks (Chime, Sparkle, Marimba, Pop or Arcade, synthesized by the app).
+<p align="center">
+  <img src="docs/screenshots/peripherals.png" width="558" alt="Peripherals panel: a wireless mouse at 50% and a headset at 80%" />
+</p>
+
+**Sound**: **Settings → Sound** sets the volume of every sound the island plays and the sound for finished tasks (Chime, Sparkle, Marimba, Pop or Arcade, synthesized by the app). Every module's settings are listed under **Modules** in the sidebar.
+
+<p align="center">
+  <img src="docs/screenshots/settings-sound.png" width="620" alt="Sound settings: volume, the sound for finished tasks, and the modules listed in the sidebar" />
+</p>
 
 **Live Activities**: short alerts and ongoing activities:
 
