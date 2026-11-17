@@ -19,7 +19,8 @@ import { githubSettings } from "./settings";
 import type { GithubState } from "./types";
 
 const ROW = 42;
-const MAX_VISIBLE_ROWS = 5;
+/** More repos than this scroll. */
+const MAX_VISIBLE_ROWS = 6;
 
 export const githubModule: IslandModule = {
 	id: "github",
