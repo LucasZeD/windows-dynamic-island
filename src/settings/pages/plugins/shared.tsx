@@ -92,7 +92,7 @@ export function Dialog({ open, children }: { open: boolean; children: ReactNode 
 					<motion.div
 						role="dialog"
 						aria-modal
-						className="flex w-full max-w-110 flex-col gap-3 rounded-2xl bg-[#1a1a20] p-5.5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.8),inset_0_0_0_1px_var(--hairline)]"
+						className="flex w-full max-w-110 flex-col gap-3 rounded-2xl bg-(--settings-modal) p-5.5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.8),inset_0_0_0_1px_var(--hairline)]"
 						initial={{ scale: 0.96, y: 8 }}
 						animate={{ scale: 1, y: 0 }}
 						exit={{ scale: 0.96, y: 8 }}

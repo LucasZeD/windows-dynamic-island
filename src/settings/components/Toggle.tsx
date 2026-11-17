@@ -7,7 +7,7 @@ import { type SettingDef, setSetting } from "../../core/settings";
 const toggle = tv({
 	slots: {
 		base: "relative flex h-6.25 w-10.5 flex-none items-center rounded-full bg-white/14 p-0.75 transition-[background] duration-250 ease-[ease] disabled:opacity-40",
-		knob: "size-4.75 rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)]",
+		knob: "size-4.75 rounded-full bg-[#fff] shadow-[0_2px_6px_rgba(0,0,0,0.35)]",
 	},
 	variants: {
 		checked: {

@@ -8,10 +8,13 @@ import {
 	SettingsIcon,
 } from "lucide-react";
 import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { useAppearance } from "../core/appearance";
+import { command } from "../core/bridge";
 import { useSyncLocale, useT } from "../core/i18n";
 import { useSettings } from "../core/settings";
+import { useGlassSupported } from "../core/useGlass";
 import { NavItem, NavSection } from "./components/NavItem";
 import { TitleBar } from "./components/TitleBar";
 import { AboutPage } from "./pages/AboutPage";
@@ -34,6 +37,7 @@ export function SettingsApp() {
 	const values = useSettings();
 	const t = useT();
 	useSyncLocale();
+	useIslandLook();
 
 	return (
 		<MemoryRouter>
@@ -53,7 +57,7 @@ export function SettingsApp() {
 						<div className="flex-1" />
 						<NavItem to="/about" icon={<InfoIcon size={15} />} label={t("settings.about.title")} />
 					</nav>
-					<main className="min-w-0 flex-1 overflow-y-auto rounded-tl-xl bg-[#121217] shadow-[inset_1px_1px_0_var(--hairline)] [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-3 [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-white/12 [&::-webkit-scrollbar-thumb]:bg-clip-padding">
+					<main className="min-w-0 flex-1 overflow-y-auto rounded-tl-xl bg-(--settings-panel) shadow-[inset_1px_1px_0_var(--hairline)] [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-3 [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-white/12 [&::-webkit-scrollbar-thumb]:bg-clip-padding">
 						<Page>
 							<Routes>
 								<Route index element={<GeneralPage values={values} />} />
@@ -88,4 +92,20 @@ function Page({ children }: { children: ReactNode }) {
 			{children}
 		</motion.div>
 	);
+}
+
+/**
+ * The window looks like the island: its theme, and its material as a system
+ * backdrop behind a see-through page (solid where the system has no glass).
+ */
+function useIslandLook() {
+	const { theme, material } = useAppearance();
+	const glass = useGlassSupported();
+	const shown = glass ? material : "solid";
+	useEffect(() => {
+		const root = document.documentElement.dataset;
+		root.theme = theme;
+		root.material = shown;
+		command("set_settings_look", { material: shown, theme }).catch(() => {});
+	}, [theme, shown]);
 }

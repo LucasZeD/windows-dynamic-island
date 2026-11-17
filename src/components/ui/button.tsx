@@ -6,7 +6,7 @@ export const button = tv({
 	base: "h-8 flex-none rounded-2xl px-4 text-[13px] font-[650] transition-[filter,opacity] duration-200 hover:brightness-115 disabled:pointer-events-none disabled:opacity-50",
 	variants: {
 		variant: {
-			primary: "bg-[#d97757] text-white",
+			primary: "bg-[#d97757] text-[#fff]",
 			danger: "bg-[rgba(255,95,87,0.15)] text-danger",
 			soft: "flex items-center gap-1.75 bg-white/8 text-text shadow-[inset_0_0_0_1px_var(--hairline)]",
 		},
