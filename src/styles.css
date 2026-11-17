@@ -123,14 +123,44 @@
 	}
 }
 
-/* The PiP and settings windows are opaque. */
+/* The PiP window is opaque. */
 html:has([data-pip]),
 body:has([data-pip]) {
 	background: #000;
 }
+
+/* The settings window takes on the island's theme and material (`SettingsApp.tsx`):
+   solid paints its own background; with glass the system backdrop (Mica, Acrylic)
+   shows through a tint. */
+:root {
+	--settings-bg: #0c0c10;
+	--settings-panel: #121217;
+	--settings-modal: #1a1a20;
+}
+:root[data-theme="light"] {
+	--settings-bg: #ececf0;
+	--settings-panel: #f7f7f9;
+	--settings-modal: #ffffff;
+}
+:root[data-material="frosted"] {
+	--settings-bg: rgb(12 12 16 / 0.45);
+	--settings-panel: rgb(18 18 23 / 0.55);
+}
+:root[data-material="liquid"] {
+	--settings-bg: rgb(12 12 16 / 0.28);
+	--settings-panel: rgb(18 18 23 / 0.4);
+}
+:root[data-theme="light"][data-material="frosted"] {
+	--settings-bg: rgb(236 236 240 / 0.5);
+	--settings-panel: rgb(250 250 252 / 0.62);
+}
+:root[data-theme="light"][data-material="liquid"] {
+	--settings-bg: rgb(236 236 240 / 0.32);
+	--settings-panel: rgb(250 250 252 / 0.5);
+}
 html:has([data-settings]),
 body:has([data-settings]) {
-	background: #0c0c10;
+	background: var(--settings-bg);
 }
 
 /* Browser preview wallpaper (never applied inside Tauri). */

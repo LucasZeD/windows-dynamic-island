@@ -117,6 +117,7 @@ pub fn run() {
             settings::get_settings,
             settings::set_setting,
             settings::open_settings,
+            settings::set_settings_look,
             settings::get_autostart,
             settings::set_autostart,
             settings::open_repo,

@@ -86,6 +86,12 @@ pub fn open_settings(app: AppHandle) -> Result<(), String> {
 }
 
 const SIZE: (f64, f64) = (860.0, 620.0);
+/// Smallest the settings window can be resized to (logical px).
+const MIN_SIZE: (f64, f64) = (760.0, 520.0);
+/// The settings window's last size, `[width, height]` in logical px.
+const SIZE_KEY: &str = "settingsWindow.size";
+/// Resizing sends a burst of events: the size is saved once it settles.
+const SIZE_SAVE_DELAY: std::time::Duration = std::time::Duration::from_millis(600);
 
 pub fn open(app: &AppHandle) -> tauri::Result<()> {
     if let Some(win) = app.get_webview_window(SETTINGS_LABEL) {
@@ -106,18 +112,92 @@ pub fn open(app: &AppHandle) -> tauri::Result<()> {
 }
 
 fn create(app: &AppHandle) -> tauri::Result<()> {
+    let (width, height) = stored_size(app.state::<Settings>().get(SIZE_KEY));
     let win = WebviewWindowBuilder::new(app, SETTINGS_LABEL, WebviewUrl::App("index.html".into()))
         .title(crate::i18n::t(app, "window.settings"))
-        .inner_size(SIZE.0, SIZE.1)
-        .resizable(false)
+        .inner_size(width, height)
+        .min_inner_size(MIN_SIZE.0, MIN_SIZE.1)
+        .resizable(true)
         .center()
         // Custom titlebar lives in the webview (see `SettingsApp.tsx`).
         .decorations(false)
+        // See-through, so the island's glass materials can show (`set_settings_look`);
+        // the page paints its own background otherwise.
+        .transparent(true)
         .background_color(tauri::webview::Color(12, 12, 16, 255))
         .additional_browser_args(crate::memory::BROWSER_ARGS)
         .build()?;
     crate::memory::trim_when_minimized(&win);
+    remember_size(&win);
     Ok(())
+}
+
+/// The saved size, or the default; never below the minimum.
+fn stored_size(value: Option<Value>) -> (f64, f64) {
+    let pair = value
+        .and_then(|v| serde_json::from_value::<[f64; 2]>(v).ok())
+        .filter(|[w, h]| w.is_finite() && h.is_finite());
+    let [w, h] = pair.unwrap_or([SIZE.0, SIZE.1]);
+    (w.max(MIN_SIZE.0), h.max(MIN_SIZE.1))
+}
+
+/// Saves the window's size once a resize settles (not while minimized or maximized).
+fn remember_size(win: &tauri::WebviewWindow) {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    let generation = Arc::new(AtomicU64::new(0));
+    let window = win.clone();
+    win.on_window_event(move |event| {
+        let tauri::WindowEvent::Resized(size) = event else {
+            return;
+        };
+        if size.width == 0 || size.height == 0 {
+            return;
+        }
+        let this = generation.fetch_add(1, Ordering::Relaxed) + 1;
+        let generation = generation.clone();
+        let window = window.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(SIZE_SAVE_DELAY);
+            if generation.load(Ordering::Relaxed) != this
+                || window.is_maximized().unwrap_or(false)
+                || window.is_minimized().unwrap_or(false)
+            {
+                return;
+            }
+            let (Ok(size), Ok(scale)) = (window.inner_size(), window.scale_factor()) else {
+                return;
+            };
+            let logical = size.to_logical::<f64>(scale);
+            let value = serde_json::json!([logical.width.round(), logical.height.round()]);
+            set(window.app_handle(), SIZE_KEY, value);
+        });
+    });
+}
+
+/// The settings window takes on the island's look: its theme (title bar,
+/// system backdrop) and material. Solid is the page's own background; the
+/// glass materials put a system backdrop behind the (translucent) page:
+/// Mica for frosted glass, Acrylic (clearer, the desktop shows) for Liquid Glass.
+#[tauri::command]
+pub fn set_settings_look(window: tauri::WebviewWindow, material: String, theme: String) {
+    use tauri::window::{Effect, EffectsBuilder};
+    if window.label() != SETTINGS_LABEL {
+        return;
+    }
+    let light = theme == "light";
+    let _ = window.set_theme(Some(if light {
+        tauri::Theme::Light
+    } else {
+        tauri::Theme::Dark
+    }));
+    let effect = match material.as_str() {
+        "frosted" => Some(if light { Effect::MicaLight } else { Effect::MicaDark }),
+        "liquid" => Some(Effect::Acrylic),
+        _ => None,
+    };
+    let _ = window.set_effects(effect.map(|e| EffectsBuilder::new().effect(e).build()));
 }
 
 const REPO_URL: &str = "https://github.com/HeyyCzer/windows-island";
@@ -164,4 +244,17 @@ pub fn get_autostart(app: AppHandle) -> bool {
 #[tauri::command]
 pub fn set_autostart(app: AppHandle, enabled: bool) -> Result<bool, String> {
     crate::autostart::set(&app, enabled)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn settings_window_size_falls_back_and_never_goes_below_the_minimum() {
+        assert_eq!(stored_size(None), SIZE);
+        assert_eq!(stored_size(Some(serde_json::json!([1200, 900]))), (1200.0, 900.0));
+        assert_eq!(stored_size(Some(serde_json::json!([100, 100]))), MIN_SIZE);
+        assert_eq!(stored_size(Some(serde_json::json!("junk"))), SIZE);
+    }
 }

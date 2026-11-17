@@ -17,7 +17,7 @@ const select = tv({
 		field: [
 			field,
 			focusRing,
-			"min-w-0 cursor-pointer appearance-none pr-8 pl-3 text-ellipsis [&_option]:bg-[#1c1c22] [&_option]:text-white",
+			"min-w-0 cursor-pointer appearance-none pr-8 pl-3 text-ellipsis [&_option]:bg-(--settings-modal) [&_option]:text-text",
 		],
 		// 20px box: lucide draws the chevron 10px wide in its middle, like the old 10×6 image.
 		icon: "pointer-events-none absolute top-1/2 right-1.75 -translate-y-1/2 text-[#aaa]",
