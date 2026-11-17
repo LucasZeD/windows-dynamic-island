@@ -35,6 +35,10 @@ pub fn serve(ctx: Ctx) {
 
     let json = Header::from_bytes("Content-Type", "application/json").unwrap();
     for mut req in server.incoming_requests() {
+        if !crate::providers::from_local_client(req.headers()) {
+            let _ = req.respond(Response::from_string("{}").with_status_code(403));
+            continue;
+        }
         let mut body = String::new();
         let _ = req
             .as_reader()
@@ -73,7 +77,7 @@ pub fn handle_hook(ctx: &Ctx, v: &Value) {
     let event = str_of("hook_event_name");
     let tool = str_of("tool_name");
     let now = now_ms();
-    let transcript = std::path::Path::new(str_of("transcript_path"));
+    let transcript = transcripts::trusted(str_of("transcript_path")).unwrap_or_default();
     // How the reply starts, for the "done" alert. Newer Claude Code versions
     // send it with the hook; otherwise it's the last text in the transcript.
     let mut summary = (event == "Stop")
@@ -81,7 +85,7 @@ pub fn handle_hook(ctx: &Ctx, v: &Value) {
             v["last_assistant_message"]
                 .as_str()
                 .map(str::to_string)
-                .or_else(|| transcripts::last_reply(transcript))
+                .or_else(|| transcripts::last_reply(&transcript))
         })
         .flatten()
         .map(|text| preview(&text));
@@ -146,7 +150,7 @@ pub fn handle_hook(ctx: &Ctx, v: &Value) {
                     s.summary = summary.take();
                     // Started before the island did: the transcript knows.
                     if s.prompt.is_none() {
-                        s.prompt = transcripts::last_prompt(transcript).map(|p| preview(&p));
+                        s.prompt = transcripts::last_prompt(&transcript).map(|p| preview(&p));
                     }
                     s.activity = Some(Activity::new(if event == "Stop" {
                         "done"

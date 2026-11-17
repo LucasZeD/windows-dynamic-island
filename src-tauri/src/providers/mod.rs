@@ -74,6 +74,33 @@ pub fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
+/// Whether a request to one of the local HTTP servers comes from a local
+/// program (curl, a script, Claude Code's hooks) rather than a web page.
+///
+/// Listening on 127.0.0.1 doesn't keep browsers out: any page can POST to
+/// localhost. Browsers always send `Origin` on those requests, and local
+/// tools don't, so any `Origin` is refused. The `Host` check stops DNS
+/// rebinding (a site whose name resolves to 127.0.0.1).
+pub fn from_local_client(headers: &[tiny_http::Header]) -> bool {
+    let header = |name: &'static str| {
+        headers
+            .iter()
+            .find(|h| h.field.equiv(name))
+            .map(|h| h.value.as_str().to_ascii_lowercase())
+    };
+    if header("Origin").is_some() {
+        return false;
+    }
+    let Some(host) = header("Host") else {
+        return true; // HTTP/1.0 tools may leave it out.
+    };
+    let name = match host.strip_prefix('[') {
+        Some(v6) => v6.split(']').next().unwrap_or_default(),
+        None => host.split(':').next().unwrap_or_default(),
+    };
+    matches!(name, "127.0.0.1" | "localhost" | "::1")
+}
+
 pub struct Providers(pub Vec<Arc<dyn Provider>>);
 
 #[tauri::command]
@@ -98,4 +125,42 @@ pub async fn provider_action(
     tauri::async_runtime::spawn_blocking(move || provider.action(&action, payload))
         .await
         .map_err(|e| e.to_string())?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::from_local_client;
+    use tiny_http::Header;
+
+    fn headers(list: &[(&str, &str)]) -> Vec<Header> {
+        list.iter()
+            .map(|(k, v)| Header::from_bytes(k.as_bytes(), v.as_bytes()).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn local_tools_get_through() {
+        assert!(from_local_client(&headers(&[("Host", "127.0.0.1:5199")])));
+        assert!(from_local_client(&headers(&[("Host", "localhost:5199")])));
+        assert!(from_local_client(&headers(&[("Host", "[::1]:5199")])));
+        // The statusline bridge sends no port.
+        assert!(from_local_client(&headers(&[("Host", "127.0.0.1")])));
+        assert!(from_local_client(&[]));
+    }
+
+    #[test]
+    fn web_pages_are_refused() {
+        // A cross-site POST (text/plain, no preflight) from any page.
+        assert!(!from_local_client(&headers(&[
+            ("Host", "127.0.0.1:5199"),
+            ("Origin", "https://evil.example"),
+        ])));
+        // Sandboxed frames and file:// pages send "null".
+        assert!(!from_local_client(&headers(&[
+            ("Host", "127.0.0.1:5199"),
+            ("Origin", "null"),
+        ])));
+        // DNS rebinding: the name resolves to 127.0.0.1, the Host header doesn't lie.
+        assert!(!from_local_client(&headers(&[("Host", "rebind.evil.example:5199")])));
+    }
 }

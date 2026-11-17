@@ -42,6 +42,10 @@ pub fn serve(activities: Activities) {
     activities.set_api_port(Some(port));
 
     for mut req in server.incoming_requests() {
+        if !crate::providers::from_local_client(req.headers()) {
+            respond(req, 403, Some(json!({ "error": "local clients only" })));
+            continue;
+        }
         let mut body = String::new();
         let _ = req.as_reader().take(MAX_BODY).read_to_string(&mut body);
         let (status, payload) = route(&activities, &req, &body);
