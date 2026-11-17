@@ -19,14 +19,17 @@ pub fn system(alias: &str) {
     let _ = alias;
 }
 
-/// Plays an audio file in the background; overlapping calls play together.
-pub fn file(path: &Path) {
+/// Plays an audio file in the background at the app's volume (`sound.volume`);
+/// overlapping calls play together.
+pub fn file(app: &AppHandle, path: &Path) {
     static NEXT: AtomicU32 = AtomicU32::new(0);
+    let volume = volume(app);
     let alias = format!("island-sound-{}", NEXT.fetch_add(1, Ordering::Relaxed));
     let path = path.to_string_lossy().replace('"', "");
     std::thread::spawn(move || {
         // `wait` blocks this thread until the end, so the device can be closed.
         if mci(&format!("open \"{path}\" type mpegvideo alias {alias}")) {
+            mci(&format!("setaudio {alias} volume to {volume}"));
             mci(&format!("play {alias} wait"));
             mci(&format!("close {alias}"));
         } else {
@@ -65,50 +68,137 @@ pub fn pick() -> Option<String> {
     crate::dialog::pick_file("Audio (MP3, WAV, WMA)", "*.mp3;*.wav;*.wma")
 }
 
-/// Sample rate of the synthesized chime.
-const CHIME_RATE: u32 = 44_100;
-/// Length of the chime (s): the notes plus their ring.
-const CHIME_SECONDS: f64 = 0.95;
-/// The notes, rising (C6, E6, G6): when each starts (s), its pitch (Hz), how
-/// fast it fades (1/s) and how loud it is.
-const CHIME_NOTES: [(f64, f64, f64, f64); 3] = [
-    (0.0, 1046.50, 7.0, 0.8),
-    (0.075, 1318.51, 6.5, 0.85),
-    (0.15, 1567.98, 4.2, 1.0),
-];
-/// Headroom: the three notes together stay well under full scale.
-const CHIME_GAIN: f64 = 0.2;
+/// Sample rate of the synthesized tones.
+const RATE: u32 = 44_100;
 
-/// A short rewarding chime for a finished task: three bell-like notes rising,
-/// each ringing out. Made here (no sound file to ship or license), as a 16-bit
-/// mono WAV.
-pub fn chime_wav() -> Vec<u8> {
+/// One note of a tone.
+struct Note {
+    /// When it starts (s).
+    at: f64,
+    /// Pitch (Hz).
+    freq: f64,
+    /// How fast it fades (1/s).
+    decay: f64,
+    level: f64,
+    /// Overtones: (multiple of `freq`, loudness).
+    partials: &'static [(f64, f64)],
+    /// Rises by this fraction of its pitch over its first 60 ms (a drop's "pop").
+    glide: f64,
+}
+
+/// A small bell: the note, its octave, a touch of the 12th.
+const BELL: &[(f64, f64)] = &[(1.0, 1.0), (2.0, 0.28), (3.0, 0.08)];
+/// Glassy and bright: the octave and the double octave.
+const GLASS: &[(f64, f64)] = &[(1.0, 1.0), (2.0, 0.4), (4.0, 0.12)];
+/// A wooden bar: a marimba's strong partial near the double octave.
+const WOOD: &[(f64, f64)] = &[(1.0, 1.0), (3.93, 0.3), (9.2, 0.05)];
+/// Odd harmonics, a square wave rounded off: an old console's beep.
+const RETRO: &[(f64, f64)] = &[(1.0, 1.0), (3.0, 0.3), (5.0, 0.15), (7.0, 0.07)];
+const PURE: &[(f64, f64)] = &[(1.0, 1.0)];
+
+const fn note(at: f64, freq: f64, decay: f64, level: f64, partials: &'static [(f64, f64)]) -> Note {
+    Note {
+        at,
+        freq,
+        decay,
+        level,
+        partials,
+        glide: 0.0,
+    }
+}
+
+/// The tones to pick from for a finished task (`sound.toastTone`); the first is the default.
+pub const TONES: [&str; 5] = ["chime", "sparkle", "marimba", "pop", "arcade"];
+
+/// A tone's notes and length (s).
+fn tone(id: &str) -> (Vec<Note>, f64) {
+    match id {
+        // Four glassy notes up the chord (C6, E6, G6, C7), the last one ringing.
+        "sparkle" => (
+            vec![
+                note(0.0, 1046.50, 11.0, 0.6, GLASS),
+                note(0.045, 1318.51, 11.0, 0.65, GLASS),
+                note(0.09, 1567.98, 10.0, 0.7, GLASS),
+                note(0.135, 2093.00, 5.0, 0.8, GLASS),
+            ],
+            0.9,
+        ),
+        // Two wooden notes a fourth apart (G5, C6).
+        "marimba" => (
+            vec![
+                note(0.0, 783.99, 13.0, 0.9, WOOD),
+                note(0.11, 1046.50, 9.0, 1.0, WOOD),
+            ],
+            0.7,
+        ),
+        // A drop of water: two quick upward sweeps.
+        "pop" => (
+            vec![
+                Note {
+                    glide: 0.9,
+                    ..note(0.0, 520.0, 26.0, 1.0, PURE)
+                },
+                Note {
+                    glide: 0.6,
+                    ..note(0.09, 880.0, 30.0, 0.55, PURE)
+                },
+            ],
+            0.35,
+        ),
+        // Two quick beeps up a fourth (A5, D6), the second held a bit.
+        "arcade" => (
+            vec![
+                note(0.0, 880.0, 18.0, 1.0, RETRO),
+                note(0.085, 1174.66, 6.0, 1.0, RETRO),
+            ],
+            0.6,
+        ),
+        // The chime: three bells rising (C6, E6, G6), each ringing out.
+        _ => (
+            vec![
+                note(0.0, 1046.50, 7.0, 0.8, BELL),
+                note(0.075, 1318.51, 6.5, 0.85, BELL),
+                note(0.15, 1567.98, 4.2, 1.0, BELL),
+            ],
+            0.95,
+        ),
+    }
+}
+
+/// Headroom: notes ringing together stay well under full scale.
+const GAIN: f64 = 0.2;
+
+/// A tone as a 16-bit mono WAV. Made here: no sound files to ship or license.
+pub fn tone_wav(id: &str) -> Vec<u8> {
     use std::f64::consts::TAU;
-    let samples = (CHIME_RATE as f64 * CHIME_SECONDS) as usize;
-    let fade_out = (CHIME_RATE as f64 * 0.03) as usize;
+    let (notes, seconds) = tone(id);
+    let samples = (RATE as f64 * seconds) as usize;
+    let fade_out = (RATE as f64 * 0.03) as usize;
+    let dt = 1.0 / RATE as f64;
+    // Each note's phase, accumulated so a gliding pitch stays smooth.
+    let mut phase = vec![0.0f64; notes.len()];
     let pcm: Vec<i16> = (0..samples)
         .map(|i| {
-            let t = i as f64 / CHIME_RATE as f64;
+            let t = i as f64 * dt;
             let mut v = 0.0;
-            for (start, freq, decay, level) in CHIME_NOTES {
-                let local = t - start;
+            for (n, p) in notes.iter().zip(phase.iter_mut()) {
+                let local = t - n.at;
                 if local < 0.0 {
                     continue;
                 }
-                // A 4 ms attack (no click), then a bell's exponential fade.
-                let envelope = (local / 0.004).min(1.0) * (-local * decay).exp();
-                // The partials of a small bell: the note, its octave, a touch of the 12th.
-                let tone = (TAU * freq * local).sin()
-                    + 0.28 * (TAU * 2.0 * freq * local).sin()
-                    + 0.08 * (TAU * 3.0 * freq * local).sin();
-                v += level * envelope * tone;
+                let freq = n.freq * (1.0 + n.glide * (local / 0.06).min(1.0));
+                *p += TAU * freq * dt;
+                // A 4 ms attack (no click), then an exponential fade.
+                let envelope = (local / 0.004).min(1.0) * (-local * n.decay).exp();
+                let tone: f64 = n.partials.iter().map(|(k, a)| a * (k * *p).sin()).sum();
+                v += n.level * envelope * tone;
             }
             // The tail fades to silence instead of stopping.
             let tail = ((samples - i) as f64 / fade_out as f64).min(1.0);
-            (v * CHIME_GAIN * tail * i16::MAX as f64).round() as i16
+            (v * GAIN * tail * i16::MAX as f64).round() as i16
         })
         .collect();
-    wav(&pcm, CHIME_RATE)
+    wav(&pcm, RATE)
 }
 
 /// 16-bit mono PCM in a WAV container.
@@ -133,13 +223,38 @@ fn wav(pcm: &[i16], rate: u32) -> Vec<u8> {
     out
 }
 
-/// The island's toast said something finished (`appearance.toastSound`, checked by the frontend).
+/// The app's sound volume, 0–100 (Settings → Sound).
+const VOLUME_KEY: &str = "sound.volume";
+const DEFAULT_VOLUME: u64 = 70;
+/// The finished-task tone (Settings → Sound).
+const TONE_KEY: &str = "sound.toastTone";
+
+/// The volume setting on MCI's 0–1000 scale.
+fn volume(app: &AppHandle) -> u32 {
+    let percent = app
+        .state::<crate::settings::Settings>()
+        .get(VOLUME_KEY)
+        .and_then(|v| v.as_u64())
+        .unwrap_or(DEFAULT_VOLUME)
+        .min(100);
+    percent as u32 * 10
+}
+
+/// A toast said something finished: plays `tone`, else the chosen one.
+/// Whether to play at all is the frontend's call (`sound.toast`).
 #[tauri::command]
-pub fn play_toast_sound(app: AppHandle) {
-    static CHIME: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
-    let bytes = CHIME.get_or_init(chime_wav);
-    if let Some(path) = bundled(&app, "toast-chime.wav", bytes) {
-        file(&path);
+pub fn play_toast_sound(app: AppHandle, tone: Option<String>) {
+    let chosen = tone.or_else(|| {
+        app.state::<crate::settings::Settings>()
+            .get(TONE_KEY)
+            .and_then(|v| v.as_str().map(str::to_owned))
+    });
+    let id = chosen
+        .as_deref()
+        .filter(|t| TONES.contains(t))
+        .unwrap_or(TONES[0]);
+    if let Some(path) = bundled(&app, &format!("toast-{id}.wav"), &tone_wav(id)) {
+        file(&app, &path);
     }
 }
 
@@ -147,28 +262,46 @@ pub fn play_toast_sound(app: AppHandle) {
 mod tests {
     use super::*;
 
-    #[test]
-    fn the_chime_is_a_valid_short_wav() {
-        let wav = chime_wav();
-        assert_eq!(&wav[0..4], b"RIFF");
-        assert_eq!(&wav[8..16], b"WAVEfmt ");
-        let samples = (wav.len() - 44) / 2;
-        assert_eq!(samples, (CHIME_RATE as f64 * CHIME_SECONDS) as usize);
-        assert_eq!(u32::from_le_bytes(wav[4..8].try_into().unwrap()) as usize, wav.len() - 8);
-    }
-
-    #[test]
-    fn the_chime_never_clips_and_ends_in_silence() {
-        let wav = chime_wav();
-        let pcm: Vec<i16> = wav[44..]
+    fn pcm(wav: &[u8]) -> Vec<i16> {
+        wav[44..]
             .as_chunks::<2>()
             .0
             .iter()
             .map(|b| i16::from_le_bytes(*b))
-            .collect();
-        let peak = pcm.iter().map(|s| s.unsigned_abs()).max().unwrap();
-        assert!(u32::from(peak) < i16::MAX as u32 * 9 / 10, "peak {peak}");
-        assert!(peak > (i16::MAX as u16) / 5, "too quiet: {peak}");
-        assert!(pcm.last().unwrap().unsigned_abs() < 50);
+            .collect()
+    }
+
+    #[test]
+    fn every_tone_is_a_valid_short_wav() {
+        for id in TONES {
+            let wav = tone_wav(id);
+            assert_eq!(&wav[0..4], b"RIFF", "{id}");
+            assert_eq!(&wav[8..16], b"WAVEfmt ", "{id}");
+            assert_eq!(
+                u32::from_le_bytes(wav[4..8].try_into().unwrap()) as usize,
+                wav.len() - 8
+            );
+            let seconds = (wav.len() - 44) as f64 / 2.0 / RATE as f64;
+            assert!((0.2..=1.0).contains(&seconds), "{id}: {seconds} s");
+        }
+    }
+
+    #[test]
+    fn no_tone_clips_or_whispers_and_all_end_in_silence() {
+        for id in TONES {
+            let pcm = pcm(&tone_wav(id));
+            let peak = pcm.iter().map(|s| s.unsigned_abs()).max().unwrap();
+            assert!(
+                u32::from(peak) < i16::MAX as u32 * 9 / 10,
+                "{id}: peak {peak}"
+            );
+            assert!(peak > (i16::MAX as u16) / 6, "{id}: too quiet ({peak})");
+            assert!(pcm.last().unwrap().unsigned_abs() < 50, "{id}");
+        }
+    }
+
+    #[test]
+    fn unknown_tones_fall_back_to_the_chime() {
+        assert_eq!(tone_wav("nope"), tone_wav("chime"));
     }
 }

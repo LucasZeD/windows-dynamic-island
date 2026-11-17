@@ -288,13 +288,6 @@ export const appearanceSettings = {
 		description: "appearance.liquidTint.desc",
 		default: "clear" as LiquidTint,
 	} satisfies SettingDef<LiquidTint>,
-	/** A short chime when a toast says something finished. */
-	toastSound: {
-		key: "appearance.toastSound",
-		label: "appearance.toastSound.label",
-		description: "appearance.toastSound.desc",
-		default: true,
-	} satisfies SettingDef,
 	restShape: {
 		key: "appearance.restShape",
 		label: "appearance.restShape.label",
@@ -348,4 +341,30 @@ export const appearanceSettings = {
 		description: "appearance.idleClock.desc",
 		default: true,
 	} satisfies SettingDef,
+};
+
+/** The tones the backend synthesizes (`TONES` in `sound.rs`); the first is the default. */
+export const SOUND_TONES = ["chime", "sparkle", "marimba", "pop", "arcade"] as const;
+export type SoundTone = (typeof SOUND_TONES)[number];
+
+/** Settings → Sound. */
+export const soundSettings = {
+	/** 0–100, for every sound the app plays from a file (read by `sound.rs`). */
+	volume: {
+		key: "sound.volume",
+		label: "sound.volume.label",
+		default: 70,
+	} satisfies SettingDef<number>,
+	/** A tone when a toast says something finished. */
+	toast: {
+		key: "sound.toast",
+		label: "sound.toast.label",
+		description: "sound.toast.desc",
+		default: true,
+	} satisfies SettingDef,
+	toastTone: {
+		key: "sound.toastTone",
+		label: "sound.toast.label",
+		default: "chime" as SoundTone,
+	} satisfies SettingDef<SoundTone>,
 };

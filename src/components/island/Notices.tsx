@@ -4,7 +4,7 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import type { Appearance } from "../../core/appearance";
 import { command, useTauriEvent } from "../../core/bridge";
 import { useT } from "../../core/i18n";
-import { appearanceSettings, readSetting, useSettings } from "../../core/settings";
+import { readSetting, soundSettings, useSettings } from "../../core/settings";
 import type { IslandMode, ModuleEntry } from "../../core/types";
 import { ClaudeLogo } from "../ui/AiLogos";
 import { GlassProbes } from "./GlassProbes";
@@ -57,7 +57,7 @@ interface Toast {
  *   when something finishes, stacking up when several come in a row;
  * - the notch: the pill already says it, so a finished task just lets a drop
  *   fall from the notch.
- * A finished task plays a short chime (`appearance.toastSound`).
+ * A finished task plays a short tone (Settings → Sound).
  */
 export function Notices({
 	primary,
@@ -227,7 +227,7 @@ function useNews(primary: ModuleEntry | undefined, entries: ModuleEntry[]) {
 	// The sound settings, read when a toast comes in (not a reason to re-run anything).
 	const soundRef = useRef({ chime: true, agentsSound: false });
 	soundRef.current = {
-		chime: readSetting(settings, appearanceSettings.toastSound),
+		chime: readSetting(settings, soundSettings.toast),
 		agentsSound: settings[AGENTS_DONE_SOUND] === true,
 	};
 
