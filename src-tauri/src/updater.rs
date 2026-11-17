@@ -1,20 +1,16 @@
-//! Self-update from GitHub releases.
+//! Updates from GitHub releases, only when asked.
 //!
 //! The release workflow publishes a signed `latest.json` next to the
-//! installers (endpoint and public key in `tauri.conf.json`). Installed builds
-//! check it shortly after startup and install a newer version right away,
-//! silently (`installMode: quiet`); the installer restarts the app when done.
-//! Later checks, every few hours, only download it and offer it in the tray,
-//! since installing on Windows closes the app mid-use.
+//! installers (endpoint and public key in `tauri.conf.json`). Upstream checks
+//! it on startup and installs silently. This build never does: a release
+//! would replace it with one without the local changes. Updates come in by
+//! merging upstream (see the workspace CLAUDE.md); the About page can still
+//! check and install by hand.
 
 use std::sync::Mutex;
-use std::time::Duration;
 
 use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::{Update, UpdaterExt};
-
-const FIRST_CHECK: Duration = Duration::from_secs(5);
-const INTERVAL: Duration = Duration::from_secs(6 * 60 * 60);
 
 /// A downloaded update waiting for the user: the update and its installer.
 #[derive(Default)]
@@ -30,21 +26,8 @@ pub fn spawn(app: AppHandle) {
     if crate::store::IS_STORE {
         return; // the Microsoft Store updates it
     }
+    // Only the manual check on the About page uses it: nothing runs in the background.
     app.manage(Pending::default());
-    std::thread::spawn(move || {
-        std::thread::sleep(FIRST_CHECK);
-        match tauri::async_runtime::block_on(check(&app)) {
-            Ok(Some(_)) => install(&app),
-            Ok(None) => {}
-            Err(e) => log::warn!("update check failed: {e}"),
-        }
-        loop {
-            std::thread::sleep(INTERVAL);
-            if let Err(e) = tauri::async_runtime::block_on(check(&app)) {
-                log::warn!("update check failed: {e}");
-            }
-        }
-    });
 }
 
 /// Look for a newer release and download it. Returns the version waiting to
