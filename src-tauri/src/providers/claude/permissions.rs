@@ -116,7 +116,9 @@ pub fn hold(ctx: &Ctx, v: &Value, request: Request) -> Option<Request> {
         session_id: session_id.to_string(),
         tool_use_id,
         input: v["tool_input"].clone(),
-        transcript: PathBuf::from(v["transcript_path"].as_str().unwrap_or_default()),
+        // Empty (never opened) unless it is a real transcript: see `transcripts::trusted`.
+        transcript: super::transcripts::trusted(v["transcript_path"].as_str().unwrap_or_default())
+            .unwrap_or_default(),
         suggestions,
         request,
         held_at: Instant::now(),

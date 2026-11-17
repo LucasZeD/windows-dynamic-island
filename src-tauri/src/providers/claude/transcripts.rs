@@ -157,6 +157,25 @@ pub fn scan_loop(ctx: Ctx) {
     }
 }
 
+/// A `transcript_path` from a hook payload, if it really is a transcript in
+/// Claude's `projects` folder. The payload comes over local HTTP, so the path
+/// can be anything: a network path (`\\host\share`) would make Windows send
+/// the user's credentials to that host just by opening it.
+pub fn trusted(raw: &str) -> Option<PathBuf> {
+    let raw = raw.trim();
+    // Before any filesystem call: even `canonicalize` touches a UNC host.
+    if raw.is_empty() || raw.starts_with(r"\\") || raw.starts_with("//") {
+        return None;
+    }
+    let path = Path::new(raw);
+    if !path.is_absolute() || path.extension().is_none_or(|e| e != "jsonl") {
+        return None;
+    }
+    let projects = claude_dir().join("projects").canonicalize().ok()?;
+    let real = path.canonicalize().ok()?;
+    real.starts_with(&projects).then_some(real)
+}
+
 /// The text of the last assistant reply in a transcript (its tail is enough).
 pub fn last_reply(path: &Path) -> Option<String> {
     last_text(path, "assistant")
@@ -445,5 +464,27 @@ fn end_status(end: TurnEnd) -> Status {
         Status::Idle
     } else {
         Status::Done
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::trusted;
+
+    #[test]
+    fn refuses_paths_outside_claude_projects() {
+        // Opening a UNC path makes Windows authenticate to that host.
+        assert!(trusted(r"\attacker.example\share\x.jsonl").is_none());
+        assert!(trusted("//attacker.example/share/x.jsonl").is_none());
+        assert!(trusted(r"\?\UNC\attacker.example\share\x.jsonl").is_none());
+        assert!(trusted("").is_none());
+        assert!(trusted("relative/x.jsonl").is_none());
+        // Real files, but not transcripts.
+        let exe = std::env::current_exe().unwrap();
+        assert!(trusted(exe.to_str().unwrap()).is_none());
+        let elsewhere = std::env::temp_dir().join("island-not-a-transcript.jsonl");
+        std::fs::write(&elsewhere, "{}").unwrap();
+        assert!(trusted(elsewhere.to_str().unwrap()).is_none());
+        let _ = std::fs::remove_file(elsewhere);
     }
 }
