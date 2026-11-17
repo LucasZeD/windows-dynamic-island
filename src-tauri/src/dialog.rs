@@ -51,3 +51,46 @@ unsafe fn pick_on_this_thread(name: &str, spec: &str) -> Option<String> {
         path
     }
 }
+
+/// Windows' folder picker; `None` when cancelled. Blocks until the user picks.
+pub fn pick_folder() -> Option<String> {
+    #[cfg(windows)]
+    {
+        std::thread::spawn(|| unsafe { pick_folder_on_this_thread() })
+            .join()
+            .ok()
+            .flatten()
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}
+
+#[cfg(windows)]
+unsafe fn pick_folder_on_this_thread() -> Option<String> {
+    use windows::Win32::System::Com::{
+        CLSCTX_INPROC_SERVER, COINIT_APARTMENTTHREADED, CoCreateInstance, CoInitializeEx,
+        CoTaskMemFree,
+    };
+    use windows::Win32::UI::Shell::{
+        FOS_PICKFOLDERS, FileOpenDialog, IFileOpenDialog, SIGDN_FILESYSPATH,
+    };
+
+    unsafe {
+        let _ = CoInitializeEx(None, COINIT_APARTMENTTHREADED);
+        let dialog: IFileOpenDialog =
+            CoCreateInstance(&FileOpenDialog, None, CLSCTX_INPROC_SERVER).ok()?;
+        let options = dialog.GetOptions().ok()?;
+        dialog.SetOptions(options | FOS_PICKFOLDERS).ok()?;
+        dialog.Show(None).ok()?;
+        let name = dialog
+            .GetResult()
+            .ok()?
+            .GetDisplayName(SIGDN_FILESYSPATH)
+            .ok()?;
+        let path = name.to_string().ok();
+        CoTaskMemFree(Some(name.0 as _));
+        path
+    }
+}

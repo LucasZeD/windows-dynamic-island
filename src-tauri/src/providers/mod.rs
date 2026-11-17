@@ -23,6 +23,7 @@ pub mod find;
 pub mod github;
 pub mod monitor;
 pub mod music;
+pub mod notes;
 pub mod notifications;
 pub mod peripherals;
 pub mod process;
@@ -59,6 +60,7 @@ pub fn registry() -> Vec<Arc<dyn Provider>> {
         Arc::new(ask::AskProvider::default()),
         Arc::new(find::FindProvider::default()),
         Arc::new(shelf::ShelfProvider::default()),
+        Arc::new(notes::NotesProvider::default()),
         Arc::new(clipboard::ClipboardProvider::default()),
         Arc::new(claude::ClaudeProvider::default()),
         Arc::new(codex::CodexProvider),

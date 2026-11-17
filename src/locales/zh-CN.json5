@@ -785,6 +785,39 @@
   },
 
   // 暂存架模块
+  notes: {
+    title: "笔记",
+    newNote: "新建笔记",
+    newFolder: "新建文件夹",
+    untitled: "未命名",
+    untitledFolder: "新建文件夹",
+    rename: "重命名",
+    delete: "删除",
+    confirmDelete: "再次点击以删除（移到笔记文件夹的 .trash 中）",
+    openFolder: "打开笔记文件夹",
+    showTree: "显示笔记列表",
+    hideTree: "隐藏笔记列表",
+    closeTab: "关闭",
+    emptyTree: "还没有笔记。",
+    noNote: "从列表中打开一条笔记，或新建一条。",
+    placeholder: "用 Markdown 书写……按 Ctrl+V 粘贴图片",
+    saving: "正在保存…",
+    saveFailed: "无法保存",
+    failed: "操作失败",
+    exists: "已存在同名项目",
+    folderError: "无法打开笔记文件夹。",
+    folder: {
+      label: "笔记文件夹",
+      desc: "每条笔记都是此文件夹中的一个 Markdown 文件。",
+      change: "更改…",
+      reset: "默认",
+    },
+    size: {
+      width: "面板宽度",
+      height: "面板高度",
+    },
+  },
+
   shelf: {
     title: "暂存架",
     empty: "在此暂存文件，随时拖到任意位置。",
