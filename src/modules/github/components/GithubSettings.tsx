@@ -1,14 +1,15 @@
-import { CircleDotIcon, XIcon } from "lucide-react";
+import { CircleDotIcon, GripVerticalIcon, XIcon } from "lucide-react";
+import { Reorder, useDragControls } from "motion/react";
 import { type FormEvent, useState } from "react";
 import { Button, IconButton, LinkButton } from "../../../components/ui/button";
-import { Block, Desc, Divider, List, ListItem, Row } from "../../../components/ui/card";
+import { Block, Desc, Divider, Row } from "../../../components/ui/card";
 import { Input, Select } from "../../../components/ui/form";
 import { providerAction, useProvider } from "../../../core/bridge";
 import { useT } from "../../../core/i18n";
 import { setSetting, useSetting } from "../../../core/settings";
 import { formatCount, parseRepo } from "../repo";
 import { githubBranches, githubRepos } from "../settings";
-import type { GithubState } from "../types";
+import type { GithubRepo, GithubState } from "../types";
 
 const TOKEN_URL = "https://github.com/settings/tokens/new?scopes=repo&description=Dynamic%20Island";
 
@@ -61,49 +62,85 @@ function Repos() {
 			</form>
 			{error && <Desc tone="error">{error}</Desc>}
 			{repos.length > 0 && (
-				<List>
-					{repos.map((name) => {
-						const repo = state?.repos.find((r) => r.name.toLowerCase() === name.toLowerCase());
-						return (
-							<ListItem key={name} name={name}>
-								{repo?.error ? (
-									<span className="flex items-center gap-1 text-[12px] font-medium text-danger">
-										{t(`github.error.${repo.error}`)}
-									</span>
-								) : (
-									repo?.openIssues != null && (
-										<span className="flex items-center gap-1 text-[12px] font-[650] text-[#3fb950]">
-											<CircleDotIcon size={12} />
-											{formatCount(repo.openIssues)}
-										</span>
-									)
-								)}
-								<BranchSelect
-									repo={name}
-									value={branches[name] ?? ""}
-									defaultBranch={repo?.info?.defaultBranch ?? null}
-									onChange={(branch) => setSetting(githubBranches, withBranch(branches, name, branch))}
-								/>
-								<IconButton
-									size="sm"
-									tone="danger"
-									title={t("github.repos.remove")}
-									onClick={() => {
-										setSetting(
-											githubRepos,
-											repos.filter((r) => r !== name),
-										);
-										setSetting(githubBranches, withBranch(branches, name, ""));
-									}}
-								>
-									<XIcon size={12} />
-								</IconButton>
-							</ListItem>
-						);
-					})}
-				</List>
+				<Reorder.Group
+					as="ul"
+					axis="y"
+					className="mt-0.5 flex list-none flex-col gap-1"
+					values={repos}
+					onReorder={(order: string[]) => setSetting(githubRepos, order)}
+				>
+					{repos.map((name) => (
+						<RepoItem
+							key={name}
+							name={name}
+							repo={state?.repos.find((r) => r.name.toLowerCase() === name.toLowerCase())}
+							branch={branches[name] ?? ""}
+							onBranch={(branch) => setSetting(githubBranches, withBranch(branches, name, branch))}
+							onRemove={() => {
+								setSetting(
+									githubRepos,
+									repos.filter((r) => r !== name),
+								);
+								setSetting(githubBranches, withBranch(branches, name, ""));
+							}}
+						/>
+					))}
+				</Reorder.Group>
 			)}
 		</Block>
+	);
+}
+
+/** A followed repo: drag the grip to reorder (the island lists them in this order). */
+function RepoItem({
+	name,
+	repo,
+	branch,
+	onBranch,
+	onRemove,
+}: {
+	name: string;
+	repo: GithubRepo | undefined;
+	branch: string;
+	onBranch: (branch: string) => void;
+	onRemove: () => void;
+}) {
+	const t = useT();
+	const drag = useDragControls();
+	return (
+		<Reorder.Item
+			as="li"
+			value={name}
+			dragListener={false}
+			dragControls={drag}
+			className="relative flex min-h-8.5 items-center gap-2 rounded-[9px] bg-white/4 pr-1.5 pl-1"
+			whileDrag={{ scale: 1.02, boxShadow: "0 10px 24px -10px rgba(0,0,0,0.6)" }}
+		>
+			<span
+				className="grid h-7 w-5 flex-none cursor-grab touch-none place-items-center text-text-faint active:cursor-grabbing"
+				title={t("layout.drag")}
+				onPointerDown={(e) => drag.start(e)}
+			>
+				<GripVerticalIcon size={14} />
+			</span>
+			<span className="min-w-0 flex-1 truncate text-[13px] font-[550]">{name}</span>
+			{repo?.error ? (
+				<span className="flex items-center gap-1 text-[12px] font-medium text-danger">
+					{t(`github.error.${repo.error}`)}
+				</span>
+			) : (
+				repo?.openIssues != null && (
+					<span className="flex items-center gap-1 text-[12px] font-[650] text-[#3fb950]">
+						<CircleDotIcon size={12} />
+						{formatCount(repo.openIssues)}
+					</span>
+				)
+			)}
+			<BranchSelect repo={name} value={branch} defaultBranch={repo?.info?.defaultBranch ?? null} onChange={onBranch} />
+			<IconButton size="sm" tone="danger" title={t("github.repos.remove")} onClick={onRemove}>
+				<XIcon size={12} />
+			</IconButton>
+		</Reorder.Item>
 	);
 }
 

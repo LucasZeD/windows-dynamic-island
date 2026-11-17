@@ -380,7 +380,7 @@
     },
     repos: {
       title: "仓库列表",
-      desc: "输入 owner/repo 或粘贴 GitHub 链接，自己的或任何人的都可以。计数每 5 分钟刷新；未登录 GitHub 时，星标、发布和提交每 30 分钟刷新。",
+      desc: "输入 owner/repo 或粘贴 GitHub 链接，自己的或任何人的都可以。拖动可调整顺序，灵动岛按此顺序显示。计数每 5 分钟刷新；未登录 GitHub 时，星标、发布和提交每 30 分钟刷新。",
       placeholder: "owner/repo",
       add: "添加",
       remove: "移除",
