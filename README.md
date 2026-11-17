@@ -18,6 +18,19 @@ The GitHub release is free. The Microsoft Store version is paid: buy it if you w
 
 </div>
 
+## About this fork
+
+This is a personal build of [HeyyCzer/windows-dynamic-island](https://github.com/HeyyCzer/windows-dynamic-island). It follows upstream (new upstream commits are merged in by hand) and adds the changes below. The download links above are upstream's releases, which don't include them: build this fork from source (see [Install](#install)). The full list is in the [changelog](CHANGELOG.md).
+
+- **More AI chats:** ChatGPT and Gemini inside the island, signed in with your own account, next to Ask Claude.
+- **More agents:** Cursor in the AI Agents tab (plan usage and tokens), alongside Claude Code and Codex.
+- **Peripherals:** the battery of wireless mice, keyboards, headsets and controllers, read with [Halo Battery](https://github.com/HeyOkay/HaloBattery).
+- **GitHub:** issues, pull requests, stars, the latest release and commit of each repo, a chosen branch per repo, and a toast on new releases or pushes.
+- **Looks:** notch or island, dark / light / auto theme, solid, frosted or Liquid Glass, and a resting orb. The settings window follows the same look.
+- **Notices:** speech bubbles by the orb and stacked toasts when a task finishes, with a choice of sounds and a volume setting.
+- **No automatic updates:** upstream installs its releases silently on startup, which would replace this build. Only the manual check on the About page remains.
+- **Security:** the local servers refuse requests from web pages, and Claude Code hook paths must point inside `~/.claude/projects`.
+
 ## Highlights
 
 - 🤖 **Your Claude Code sessions, live.** Which session is working, which one is waiting for your permission, and how much of your plan you've used, without switching windows.
@@ -34,10 +47,14 @@ The GitHub release is free. The Microsoft Store version is paid: buy it if you w
 
 ## Make it yours
 
-Not into the colorful look? You don't have to use it. **Settings → Appearance** has two styles:
+Not into the colorful look? You don't have to use it. **Settings → Appearance** has four parts:
 
-- **Dynamic Island** (default): a black notch hanging from the top edge, with named tabs. No color unless you want it.
-- **Windows Island**: a floating pill that shows the time at rest and has icon tabs at the bottom. Its rim can be a subtle hairline, a single gray, a preset gradient (Apple Intelligence, Aurora, Sunset, Ocean, Claude, Neon, Mono) or two colors of your own. You can pick a thin, medium or thick rim, and turn the moving gradient and the glow on or off.
+- **Style**: the **notch** (default), hanging from the top edge with named tabs, or the **island**, floating below the edge. At rest the island is a small orb (its news pops up in speech bubbles) or a pill with the time; its tabs can sit at the top or the bottom.
+- **Theme**: dark, light, or auto (follows Windows' app mode).
+- **Material**: solid, frosted glass (the desktop blurred behind it) or Liquid Glass (clearer glass that catches the light), clear or tinted.
+- **Border** (island only): a subtle hairline, a single gray, a preset gradient (Apple Intelligence, Aurora, Sunset, Ocean, Claude, Neon, Mono) or two colors of your own. You can pick a thin, medium or thick rim, and turn the moving gradient and the glow on or off.
+
+The settings window takes on the same theme and material. **Preview** shows a sample bubble and toast.
 
 <table align="center">
   <tr>
@@ -81,6 +98,8 @@ Not into the colorful look? You don't have to use it. **Settings → Appearance*
 - Optionally pops open when an agent needs you, finishes (showing how its reply starts) or your limits reset
 - **Answer permission requests right in the island**: see the command, file or URL, then Allow, Always allow (the rule Claude Code suggests) or Deny. Answering in the terminal or VS Code keeps working, and the island's request goes away
 - Click a session to open its project in VS Code
+- Also shows Codex sessions, and the plan usage of Cursor and Antigravity
+- When a session finishes, a toast drops below the island (one per session, stacking up) with a short sound
 
 **Ask Claude**: a conversation with Claude right in the island, using your Claude Code login (no API key).
 
@@ -89,6 +108,8 @@ Not into the colorful look? You don't have to use it. **Settings → Appearance*
 - 📷 attaches a screenshot of the window you were using; files dropped on it (or sent from the shelf) become attachments
 - Runs `claude -p` headless with hooks off, so these chats don't show up as sessions. Read-only tools and web search work; for edits it suggests opening Claude Code
 
+**ChatGPT and Gemini**: the sites themselves inside the island, signed in with your own account (your chat plan, not an API key). They sit next to Ask Claude at the end of the tab bar, as one switch. The panel size can be changed (480 × 960 by default), and a click outside closes it.
+
 **Find on screen**: like a browser's Ctrl+F, for the whole screen. Press **Ctrl+Alt+F** anywhere (or open it from the launcher) and type.
 
 - Reads everything on every monitor with Windows' own text recognition, so text inside pictures, videos and apps that don't let you search counts too
@@ -96,7 +117,7 @@ Not into the colorful look? You don't have to use it. **Settings → Appearance*
 - Ignores case and accents, and finds phrases across words. **↻** reads the screen again if it changed; **Esc** clears everything
 - Runs offline. The screen is read when you start a search and is kept in memory only while the search is open
 
-**Launcher and tabs**: the grid button in the tab bar opens every module as a tile. In **Settings → Modules** you can drag modules to reorder the tabs, choose which ones sit in the tab bar and which stay in the launcher, and turn them on or off. A busy module shows up in the bar even when it isn't pinned, and the island reopens on the last tab you used if you come back within a few minutes.
+**Launcher and tabs**: the grid button in the tab bar opens every module as a tile. Every module's settings are listed under **Modules** in the settings sidebar. In **Settings → Modules** you can drag modules to reorder the tabs, choose which ones sit in the tab bar and which stay in the launcher, and turn them on or off. A busy module shows up in the bar even when it isn't pinned, and the island reopens on the last tab you used if you come back within a few minutes.
 
 <p align="center">
   <img src="docs/screenshots/launcher.png" width="560" alt="Launcher with every module as a tile" />
@@ -122,16 +143,24 @@ Not into the colorful look? You don't have to use it. **Settings → Appearance*
 
 **Notifications**: WhatsApp, Teams, Outlook, Discord and other apps' notifications, mirrored from Windows. Each new one pops open with the app's icon, and the tab keeps the recent ones (click one to open its app). Windows only lets registered apps read notifications, so **Settings → Modules → Notifications → Enable** registers the island once as a sparse package and restarts it. This needs Windows Developer Mode, since the registration isn't signed.
 
-**GitHub**: open issue counts for the repositories you follow.
+**GitHub**: the repositories you follow, yours or anyone's.
 
-- A side bubble next to the island with the total, and a panel with each repo and its newest issue
+- A side bubble next to the island with the total of open issues
+- A panel with each repo's open issues, pull requests and stars; each repo unfolds into forks, language, last push, the latest release, commit and issue, with links
+- A toast when a repo publishes a release, and optionally on each push
+- Each repo can follow a branch other than its default one for commits; drag repos to reorder them in the settings
 - Optionally pops open when someone opens a new issue
-- Works anonymously for public repos; uses your GitHub CLI login automatically, or a token kept in the Windows Credential Manager for private repos
+- Works anonymously for public repos (details then refresh every 30 minutes); uses your GitHub CLI login automatically, or a token kept in the Windows Credential Manager for private repos
 
 **System monitor**: CPU, memory, GPU and network with a chart of the last minute, measured like Task Manager does.
 
+- Values slide from green to red as usage climbs
 - Optional side bubble with the CPU use and a memory dot
 - Warns when the CPU or the memory stays maxed out for 30 seconds, naming the app behind it
+
+**Peripherals**: the battery of wireless mice, keyboards, headsets and controllers (30+ brands, among them Razer, Logitech, SteelSeries, HyperX, Corsair, ASUS ROG, Sony, Xbox, Nintendo and 8BitDo), read by [Halo Battery](https://github.com/HeyOkay/HaloBattery)'s device code. Levels use the system monitor's colors (red at the device's alert level), with alerts when a device runs low or is fully charged. Windows only, and only in builds made with `bun run app:build:personal`.
+
+**Sound**: **Settings → Sound** sets the volume of every sound the island plays and the sound for finished tasks (Chime, Sparkle, Marimba, Pop or Arcade, synthesized by the app).
 
 **Live Activities**: short alerts and ongoing activities:
 
@@ -140,8 +169,8 @@ Not into the colorful look? You don't have to use it. **Settings → Appearance*
 
 **And also**
 
-- Starts with Windows, lives in the tray, checks for updates
-- English and Portuguese (Brazil), following your system language by default
+- Starts with Windows and lives in the tray; updates are checked only from the About page
+- English, Portuguese (Brazil) and Chinese (Simplified), following your system language by default
 
 <p align="center">
   <img src="docs/screenshots/settings.png" width="620" alt="Settings window, Modules page: reorder, tab bar or launcher, on/off" />
@@ -155,6 +184,8 @@ Not into the colorful look? You don't have to use it. **Settings → Appearance*
 Or get it from the [Microsoft Store](https://get.microsoft.com/installer/download/9nxff6h0lpdl?referrer=appbadge) (paid, to support the project; updates come through the Store).
 
 Requires Windows 10 or 11 (WebView2 is installed automatically if missing).
+
+**This fork** has no releases: build it yourself (see [Development](#development)). `bun run app:build:personal` builds the peripherals helper and the app with it (it needs `git submodule update --init` once, and Python 3.12 or 3.13); `bun run app:build:local` builds without it. Run the resulting `src-tauri/target/release/bundle/nsis/*-setup.exe`.
 
 ### Claude Code integration
 
@@ -206,15 +237,18 @@ bun run app:build    # installers in src-tauri/target/release/bundle/
 ```
 src/
   core/        island state, provider bridge, settings, appearance, i18n
-  modules/     one folder per module (music, ai-agents, ask, find, notifications, activities, shelf, clipboard,
-               github, monitor, clock), each with its own UI and settings
+  modules/     one folder per module (music, ai-agents, ask, chat, find, notifications, activities, shelf,
+               clipboard, github, monitor, peripherals, clock), each with its own UI and settings
   locales/     translations (*.json5)
   settings/    settings window
   pip/         pinned YouTube video window
 src-tauri/src/
   providers/   OS-side data sources, one per module (media controls, Claude Code, GitHub, local API + volume,
                battery and Bluetooth, Windows notifications, `claude -p` chat, screen text (OCR), shelf, clipboard history,
-               performance counters)
+               performance counters, ChatGPT / Gemini pages, Cursor usage, peripheral batteries)
+  sound.rs     alert sounds, and the finished-task tones it synthesizes
+sidecars/peripherals/
+               Halo Battery (submodule) and the bridge that runs it headless
   window.rs    click-through overlay window (no caption buttons) + hover hit-testing
   tray.rs      tray menu and black hole
   pip.rs       pinned video window
