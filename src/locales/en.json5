@@ -513,6 +513,31 @@
     permission: "Permission: {what}",
   },
   // Appearance page (settings): island style and rim
+  sound: {
+    title: "Sound",
+    lead: "What the island plays, and how loud.",
+    volume: {
+      label: "Volume",
+      desc: "For every sound the island plays: finished tasks and Claude Code's alerts. The calendar uses Windows' own reminder sound.",
+    },
+    toast: {
+      label: "Sound when something finishes",
+      desc: "Plays with the toast. Click a sound to hear it. For Claude Code tasks, its own \"done\" sound plays instead when it's on.",
+    },
+    tone: {
+      chime: "Chime",
+      sparkle: "Sparkle",
+      marimba: "Marimba",
+      pop: "Pop",
+      arcade: "Arcade",
+    },
+    agents: {
+      label: "Claude Code's sounds",
+      desc: "When a session finishes or asks for permission: in the AI agents module's settings.",
+      open: "Open",
+    },
+  },
+
   appearance: {
     title: "Appearance",
     style: {
@@ -528,10 +553,6 @@
       desc: "A pill with what's going on, or a small orb whose news pops up in speech bubbles.",
       pill: "Pill",
       orb: "Orb",
-    },
-    toastSound: {
-      label: "Sound when something finishes",
-      desc: "A short chime with the toast. For Claude Code tasks, its own “done” sound plays instead when it’s on.",
     },
     preview: {
       label: "Preview",

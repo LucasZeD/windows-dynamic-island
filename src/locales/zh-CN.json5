@@ -504,6 +504,31 @@
   },
 
   // 外观页面（设置）：灵动岛样式与边框
+  sound: {
+    title: "声音",
+    lead: "灵动岛播放的声音和音量。",
+    volume: {
+      label: "音量",
+      desc: "适用于灵动岛播放的所有声音：任务完成和 Claude Code 提醒。日历使用 Windows 自带的提醒音。",
+    },
+    toast: {
+      label: "完成时播放提示音",
+      desc: "随提示一起播放。点击声音可试听。若开启了 Claude Code 自己的“完成”音效，其任务将改为播放该音效。",
+    },
+    tone: {
+      chime: "钟声",
+      sparkle: "闪烁",
+      marimba: "马林巴",
+      pop: "气泡",
+      arcade: "街机",
+    },
+    agents: {
+      label: "Claude Code 的声音",
+      desc: "会话完成或请求权限时：在 AI 代理模块的设置中。",
+      open: "打开",
+    },
+  },
+
   appearance: {
     title: "外观",
     style: {
@@ -519,10 +544,6 @@
       desc: "显示当前动态的胶囊，或一个小圆点，消息以对话气泡弹出。",
       pill: "胶囊",
       orb: "圆点",
-    },
-    toastSound: {
-      label: "完成时播放提示音",
-      desc: "提示出现时播放简短的提示音。若开启了 Claude Code 自己的“完成”音效，其任务将改为播放该音效。",
     },
     preview: {
       label: "预览",

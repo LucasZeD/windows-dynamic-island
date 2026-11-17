@@ -473,6 +473,31 @@
     interrupted: "Interrompido",
     permission: "Permissão: {what}",
   },
+  sound: {
+    title: "Som",
+    lead: "O que a ilha toca, e em que volume.",
+    volume: {
+      label: "Volume",
+      desc: "Para todos os sons da ilha: tarefas concluídas e alertas do Claude Code. O calendário usa o som de lembrete do próprio Windows.",
+    },
+    toast: {
+      label: "Som quando algo termina",
+      desc: "Toca junto com o aviso. Clique num som para ouvir. Nas tarefas do Claude Code, o som \"concluído\" dele toca no lugar, se estiver ligado.",
+    },
+    tone: {
+      chime: "Sino",
+      sparkle: "Brilho",
+      marimba: "Marimba",
+      pop: "Bolha",
+      arcade: "Arcade",
+    },
+    agents: {
+      label: "Sons do Claude Code",
+      desc: "Quando uma sessão termina ou pede permissão: nas configurações do módulo Agentes de IA.",
+      open: "Abrir",
+    },
+  },
+
   appearance: {
     title: "Aparência",
     style: {
@@ -488,10 +513,6 @@
       desc: "Uma pílula com o que está acontecendo, ou uma pequena esfera cujas novidades aparecem em balões de fala.",
       pill: "Pílula",
       orb: "Esfera",
-    },
-    toastSound: {
-      label: "Som quando algo termina",
-      desc: "Um toque curto junto com o aviso. Nas tarefas do Claude Code, o som “concluído” dele toca no lugar, se estiver ligado.",
     },
     preview: {
       label: "Prévia",
