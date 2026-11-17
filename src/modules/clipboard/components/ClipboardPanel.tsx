@@ -273,7 +273,7 @@ function RowAction({ icon, label, onClick }: { icon: ReactNode; label: string; o
 	return (
 		<button
 			type="button"
-			className="grid size-6 place-items-center rounded-full bg-[#3a3a3c] text-[14px] leading-none hover:bg-[#4a4a4e]"
+			className="grid size-6 place-items-center rounded-full bg-white/23 text-[14px] leading-none hover:bg-white/29"
 			title={label}
 			onClick={(e) => {
 				e.stopPropagation();

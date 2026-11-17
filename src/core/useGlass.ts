@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import { command, isTauri } from "./bridge";
 import type { GlassLevel } from "./settings";
 
-/** The island's fill while the glass is on: dark enough to read, clear enough to see the blur. */
-const GLASS_TINT = "rgb(0 0 0 / 0.55)";
-
 /** Unchanged frames before the outline is measured less often. */
 const IDLE_AFTER = 10;
 
@@ -75,7 +72,7 @@ export function useGlassSupported() {
  * while the island spins away). Measured every frame so the blur follows the
  * springs; only changes are sent.
  */
-export function useGlass(level: GlassLevel) {
+export function useGlass(level: GlassLevel, tint: string) {
 	// Without the glass (Windows 10) the island stays solid, whatever is saved.
 	const enabled = useGlassSupported() && level !== "off";
 
@@ -86,7 +83,7 @@ export function useGlass(level: GlassLevel) {
 
 	useEffect(() => {
 		const root = document.documentElement.style;
-		if (enabled) root.setProperty("--island", GLASS_TINT);
+		if (enabled) root.setProperty("--island", tint);
 		if (!isTauri) return () => root.removeProperty("--island");
 
 		let raf = 0;
@@ -125,5 +122,5 @@ export function useGlass(level: GlassLevel) {
 			root.removeProperty("--island");
 			if (enabled) command("set_glass_shapes", { shapes: [] });
 		};
-	}, [enabled]);
+	}, [enabled, tint]);
 }

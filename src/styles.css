@@ -75,6 +75,21 @@
 	-webkit-font-smoothing: antialiased;
 }
 
+/* The island's light theme (set by `Island.tsx`). The modules draw with white
+   (text, translucent white layers on black): swapping white and black turns all
+   of it into dark ink on a light island without touching each module. */
+:root[data-theme="light"] {
+	--island: #f4f4f7;
+	--text: #1d1d1f;
+	--text-dim: rgba(29, 29, 31, 0.6);
+	--text-faint: rgba(29, 29, 31, 0.38);
+	--hairline: rgba(0, 0, 0, 0.08);
+	--card: rgba(0, 0, 0, 0.045);
+	--accent: #5856d6;
+	--color-white: #000;
+	--color-black: #fff;
+}
+
 /* Resets live in `base`, so component and utility classes override them. */
 @layer base {
 	* {

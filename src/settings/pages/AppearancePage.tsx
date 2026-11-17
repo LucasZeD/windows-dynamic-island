@@ -1,23 +1,32 @@
 import { motion } from "motion/react";
-import { RimRing } from "../../components/island/Rim";
+import type { ReactNode } from "react";
+import { LIQUID_EDGE, RimRing } from "../../components/island/Rim";
 import { Block, Card, card, Desc, Row } from "../../components/ui/card";
 import { Segmented } from "../../components/ui/form";
 import {
 	BORDER_PRESETS,
 	borderColors,
-	glassLevel,
+	glassOf,
+	materialOf,
 	PALETTE,
+	resolveAppearance,
 	rimBackground,
+	styleOf,
 	swatchBackground,
 	THICKNESSES,
+	themeOf,
+	useSystemDark,
 } from "../../core/appearance";
 import { cn } from "../../core/cn";
-import { useT } from "../../core/i18n";
+import { type MessageKey, useT } from "../../core/i18n";
 import {
 	appearanceSettings,
 	GLASS_LEVELS,
 	ISLAND_HIDDEN_KEY,
+	ISLAND_THEMES,
 	type IslandStyle,
+	type LiquidTint,
+	type Material,
 	readSetting,
 	setSetting,
 } from "../../core/settings";
@@ -25,26 +34,31 @@ import { useGlassSupported } from "../../core/useGlass";
 import { Title } from "../components/Heading";
 import { Toggle, ToggleRow } from "../components/Toggle";
 
-const STYLES: {
-	id: IslandStyle;
-	name: "appearance.style.dynamic" | "appearance.style.windows";
-	desc: "appearance.style.dynamicDesc" | "appearance.style.windowsDesc";
-}[] = [
+const STYLES: { id: IslandStyle; name: MessageKey; desc: MessageKey }[] = [
 	{ id: "dynamic", name: "appearance.style.dynamic", desc: "appearance.style.dynamicDesc" },
 	{ id: "windows", name: "appearance.style.windows", desc: "appearance.style.windowsDesc" },
 ];
 
-/** Look of the island: the visual style and, for Windows Island, its rim. */
+const MATERIAL_CARDS: { id: Material; name: MessageKey; desc: MessageKey }[] = [
+	{ id: "solid", name: "appearance.material.solid", desc: "appearance.material.solidDesc" },
+	{ id: "frosted", name: "appearance.material.frosted", desc: "appearance.material.frostedDesc" },
+	{ id: "liquid", name: "appearance.material.liquid", desc: "appearance.material.liquidDesc" },
+];
+
+/** Look of the island: style, theme, material and border, each in its own section. */
 export function AppearancePage({ values }: { values: Record<string, unknown> }) {
 	const t = useT();
 	const glassSupported = useGlassSupported();
-	const style = readSetting(values, appearanceSettings.style);
+	const look = resolveAppearance(values, useSystemDark());
+	const style = styleOf(values);
+	const material = materialOf(values);
 	const border = readSetting(values, appearanceSettings.border);
 	const custom = readSetting(values, appearanceSettings.customColors);
 	const thickness = readSetting(values, appearanceSettings.thickness);
 	const rim = borderColors(border, custom);
-	const windows = style === "windows";
+	const floating = style !== "dynamic";
 	const hidden = values[ISLAND_HIDDEN_KEY] === true;
+	const preview = { theme: look.theme, liquidTint: look.liquidTint, rim };
 
 	return (
 		<>
@@ -55,34 +69,127 @@ export function AppearancePage({ values }: { values: Record<string, unknown> }) 
 					<Row label={t("appearance.style.label")} desc={t("appearance.style.desc")} />
 					<div className="grid grid-cols-2 gap-2.5">
 						{STYLES.map((s) => (
-							<button
-								type="button"
+							<Choice
 								key={s.id}
-								className={cn(
-									"flex flex-col gap-1 rounded-xl bg-white/3 px-2.5 pt-2.5 pb-3 text-left shadow-[inset_0_0_0_1px_var(--hairline)] transition-[box-shadow,background] duration-200 hover:bg-white/5",
-									style === s.id && "shadow-[inset_0_0_0_2px_var(--accent)]",
-								)}
-								onClick={() => setSetting(appearanceSettings.style, s.id)}
+								selected={style === s.id}
+								name={t(s.name)}
+								desc={t(s.desc)}
+								onPick={() => setSetting(appearanceSettings.style, s.id)}
 							>
-								<StylePreview style={s.id} rim={s.id === "windows" ? rim : []} />
-								<span className="mt-1.5 text-[13.5px] font-[650]">{t(s.name)}</span>
-								<Desc>{t(s.desc)}</Desc>
-							</button>
+								<Preview {...preview} style={s.id} material={material} />
+							</Choice>
 						))}
 					</div>
 				</Block>
+				<Row
+					label={t("appearance.restShape.label")}
+					desc={floating ? t("appearance.restShape.desc") : t("appearance.floatingOnly")}
+					disabled={!floating}
+				>
+					<Segmented
+						options={[
+							{ value: "orb", label: t("appearance.restShape.orb") },
+							{ value: "pill", label: t("appearance.restShape.pill") },
+						]}
+						value={readSetting(values, appearanceSettings.restShape)}
+						disabled={!floating}
+						onChange={(value) => setSetting(appearanceSettings.restShape, value)}
+					/>
+				</Row>
+				<ToggleRow def={appearanceSettings.idleClock} value={readSetting(values, appearanceSettings.idleClock)} />
+				<Row
+					label={t("appearance.tabsPosition.label")}
+					desc={floating ? t("appearance.tabsPosition.desc") : t("appearance.floatingOnly")}
+					disabled={!floating}
+				>
+					<Segmented
+						options={[
+							{ value: "top", label: t("appearance.tabsPosition.top") },
+							{ value: "bottom", label: t("appearance.tabsPosition.bottom") },
+						]}
+						value={readSetting(values, appearanceSettings.tabsPosition)}
+						disabled={!floating}
+						onChange={(value) => setSetting(appearanceSettings.tabsPosition, value)}
+					/>
+				</Row>
+			</Card>
+
+			<Card>
+				<Row label={t("appearance.theme.label")} desc={t("appearance.theme.desc")}>
+					<Segmented
+						options={ISLAND_THEMES.map((value) => ({ value, label: t(`appearance.theme.${value}`) }))}
+						value={themeOf(values)}
+						onChange={(value) => setSetting(appearanceSettings.theme, value)}
+					/>
+				</Row>
+			</Card>
+
+			<Card>
+				<Block>
+					<Row
+						label={t("appearance.material.label")}
+						desc={
+							material !== "solid" && !glassSupported
+								? t("appearance.material.needsGlass")
+								: t("appearance.material.desc")
+						}
+					/>
+					<div className="grid grid-cols-3 gap-2.5">
+						{MATERIAL_CARDS.map((m) => (
+							<Choice
+								key={m.id}
+								selected={material === m.id}
+								name={t(m.name)}
+								desc={t(m.desc)}
+								onPick={() => {
+									setSetting(appearanceSettings.material, m.id);
+									// The old "liquid" style was the island made of Liquid Glass.
+									if (values[appearanceSettings.style.key] === "liquid") {
+										setSetting(appearanceSettings.style, "windows");
+									}
+								}}
+							>
+								<Preview {...preview} style={style} material={m.id} />
+							</Choice>
+						))}
+					</div>
+				</Block>
+				{glassSupported && material !== "solid" && (
+					<Row label={t("appearance.glass.label")} desc={t("appearance.glass.desc")}>
+						<Segmented
+							options={GLASS_LEVELS.filter((level) => level !== "off").map((level) => ({
+								value: level,
+								label: t(`appearance.glass.${level}`),
+							}))}
+							value={glassOf(values, material)}
+							onChange={(level) => setSetting(appearanceSettings.glass, level)}
+						/>
+					</Row>
+				)}
+				{material === "liquid" && (
+					<Row label={t("appearance.liquidTint.label")} desc={t("appearance.liquidTint.desc")}>
+						<Segmented
+							options={[
+								{ value: "clear", label: t("appearance.liquidTint.clear") },
+								{ value: "tinted", label: t("appearance.liquidTint.tinted") },
+							]}
+							value={look.liquidTint}
+							onChange={(value) => setSetting(appearanceSettings.liquidTint, value)}
+						/>
+					</Row>
+				)}
 			</Card>
 
 			<motion.section
 				className={card()}
 				initial={false}
-				animate={{ opacity: windows ? 1 : 0.4 }}
-				style={{ pointerEvents: windows ? "auto" : "none" }}
+				animate={{ opacity: floating ? 1 : 0.4 }}
+				style={{ pointerEvents: floating ? "auto" : "none" }}
 			>
 				<Block>
 					<Row
 						label={t("appearance.border.label")}
-						desc={windows ? t("appearance.border.desc") : t("appearance.windowsOnly")}
+						desc={floating ? t("appearance.border.desc") : t("appearance.floatingOnly")}
 					>
 						<span className="text-[13px] text-text-dim">
 							{border === "custom"
@@ -143,30 +250,6 @@ export function AppearancePage({ values }: { values: Record<string, unknown> }) 
 				</Row>
 				<ToggleRow def={appearanceSettings.animate} value={readSetting(values, appearanceSettings.animate)} />
 				<ToggleRow def={appearanceSettings.glow} value={readSetting(values, appearanceSettings.glow)} />
-				{glassSupported && (
-					<Row label={t("appearance.glass.label")} desc={t("appearance.glass.desc")}>
-						<Segmented
-							options={GLASS_LEVELS.map((level) => ({ value: level, label: t(`appearance.glass.${level}`) }))}
-							value={glassLevel(readSetting(values, appearanceSettings.glass))}
-							onChange={(level) => setSetting(appearanceSettings.glass, level)}
-						/>
-					</Row>
-				)}
-				<ToggleRow def={appearanceSettings.idleClock} value={readSetting(values, appearanceSettings.idleClock)} />
-				<Row
-					label={t("appearance.tabsPosition.label")}
-					desc={windows ? t("appearance.tabsPosition.desc") : t("appearance.windowsOnly")}
-				>
-					<Segmented
-						options={[
-							{ value: "top", label: t("appearance.tabsPosition.top") },
-							{ value: "bottom", label: t("appearance.tabsPosition.bottom") },
-						]}
-						value={readSetting(values, appearanceSettings.tabsPosition)}
-						disabled={!windows}
-						onChange={(value) => setSetting(appearanceSettings.tabsPosition, value)}
-					/>
-				</Row>
 			</motion.section>
 
 			<Card>
@@ -178,21 +261,89 @@ export function AppearancePage({ values }: { values: Record<string, unknown> }) 
 	);
 }
 
-/** A miniature of each look. */
-function StylePreview({ style, rim }: { style: IslandStyle; rim: string[] }) {
-	const background = rimBackground(rim);
+/** A card to pick (a style or a material), with its miniature. */
+function Choice({
+	selected,
+	name,
+	desc,
+	onPick,
+	children,
+}: {
+	selected: boolean;
+	name: string;
+	desc: string;
+	onPick: () => void;
+	children: ReactNode;
+}) {
 	return (
-		<div className="relative h-18.5 overflow-hidden rounded-lg bg-[radial-gradient(120%_120%_at_80%_100%,#3b3a6b_0%,#16162a_60%,#0d0d17_100%)]">
+		<button
+			type="button"
+			className={cn(
+				"flex flex-col gap-1 rounded-xl bg-white/3 px-2.5 pt-2.5 pb-3 text-left shadow-[inset_0_0_0_1px_var(--hairline)] transition-[box-shadow,background] duration-200 hover:bg-white/5",
+				selected && "shadow-[inset_0_0_0_2px_var(--accent)]",
+			)}
+			aria-pressed={selected}
+			onClick={onPick}
+		>
+			{children}
+			<span className="mt-1.5 text-[13.5px] font-[650]">{name}</span>
+			<Desc>{desc}</Desc>
+		</button>
+	);
+}
+
+/** Clear glass over the preview's backdrop. */
+const LIQUID_PREVIEW =
+	"backdrop-blur-sm shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.45),0_6px_14px_-6px_rgba(0,0,0,0.5)]";
+
+/** The island's fill in a preview, per theme and material. */
+function previewFill(theme: "dark" | "light", material: Material, tint: LiquidTint) {
+	const light = theme === "light";
+	// Literal colors: the settings window's own light theme swaps white and black.
+	if (material === "solid") return light ? "bg-[#f4f4f7]" : "bg-[#000]";
+	if (material === "frosted") return cn("backdrop-blur-sm", light ? "bg-[#fff]/66" : "bg-[#000]/55");
+	const tinted = tint === "tinted";
+	return cn(
+		LIQUID_PREVIEW,
+		light ? (tinted ? "bg-[#eeeef4]/80" : "bg-[#fff]/50") : tinted ? "bg-[#000]/62" : "bg-[#fff]/12",
+	);
+}
+
+/** A miniature of the island in a given style, material and theme. */
+function Preview({
+	style,
+	material,
+	theme,
+	liquidTint,
+	rim,
+}: {
+	style: IslandStyle;
+	material: Material;
+	theme: "dark" | "light";
+	liquidTint: LiquidTint;
+	rim: string[];
+}) {
+	const notch = style === "dynamic";
+	// The notch has no rim; Liquid Glass without a colored one catches the light.
+	const liquidEdge = !notch && material === "liquid" && !rim.length;
+	const edge = notch ? undefined : liquidEdge ? LIQUID_EDGE : rimBackground(rim);
+	return (
+		<div className="relative h-18.5 overflow-hidden rounded-lg bg-[radial-gradient(120%_120%_at_80%_100%,#6b3a5b_0%,#2a1a3a_45%,#0d0d17_100%)]">
+			{/* Something behind the island: hidden by solid, showing through glass. */}
+			<span className="absolute top-2.5 left-[42%] size-3 rounded-full bg-[#ff9f0a]" />
 			<div
 				className={cn(
-					"absolute left-1/2 grid h-5.5 -translate-x-1/2 place-items-center bg-black",
-					style === "dynamic"
-						? "top-0 w-23 rounded-b-xl before:absolute before:top-0 before:right-full before:size-2 before:bg-[radial-gradient(circle_at_0_100%,transparent_70%,#000_71%)] after:absolute after:top-0 after:left-full after:size-2 after:bg-[radial-gradient(circle_at_100%_100%,transparent_70%,#000_71%)]"
-						: "top-2 w-20 rounded-[11px]",
+					"absolute left-1/2 grid h-5.5 -translate-x-1/2 place-items-center",
+					previewFill(theme, material, liquidTint),
+					notch ? "top-0 w-23 rounded-b-xl" : "top-2 w-20 rounded-[11px]",
 				)}
 			>
-				{style === "windows" && <RimRing background={background} width={1.5} />}
-				{style === "windows" && <span className="text-[9.5px] font-[650] text-white">9:41</span>}
+				{edge && <RimRing background={edge} width={liquidEdge ? 1 : 1.5} />}
+				{!notch && (
+					<span className={cn("text-[9.5px] font-[650]", theme === "light" ? "text-[#1d1d1f]" : "text-[#fff]")}>
+						9:41
+					</span>
+				)}
 			</div>
 		</div>
 	);
@@ -221,7 +372,7 @@ function Swatch({
 			className={cn(
 				"grid size-8 place-items-center rounded-full shadow-[inset_0_0_0_2px_transparent] transition-shadow duration-150 hover:shadow-[inset_0_0_0_2px_rgba(255,255,255,0.35)]",
 				small && "size-6",
-				selected && "shadow-[inset_0_0_0_2px_#fff] hover:shadow-[inset_0_0_0_2px_#fff]",
+				selected && "shadow-[inset_0_0_0_2px_var(--color-white)] hover:shadow-[inset_0_0_0_2px_var(--color-white)]",
 			)}
 			title={title}
 			aria-pressed={selected}
@@ -229,7 +380,7 @@ function Swatch({
 		>
 			<span
 				className={cn(
-					"grid size-[calc(100%-8px)] place-items-center rounded-full text-[11px] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]",
+					"grid size-[calc(100%-8px)] place-items-center rounded-full text-[11px] text-[#fff] [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]",
 					outlined && "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]",
 				)}
 				style={{ background: fill }}

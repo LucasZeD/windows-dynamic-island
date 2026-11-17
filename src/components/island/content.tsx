@@ -13,7 +13,25 @@ import { Tabs } from "./Tabs";
  */
 export function islandContent(ctl: IslandController, look: Appearance, v: Variant): { key: string; node: ReactNode } {
 	const { mode, primary, focused } = ctl;
-	const windows = look.style === "windows";
+	const floating = look.floating;
+
+	// The orb: just the busiest module's glyph (its news pass by in bubbles).
+	if (look.orb && mode === "compact" && primary) {
+		return {
+			key: `orb:${primary.module.id}`,
+			node: <div className="grid h-full w-full place-items-center">{primary.view.icon}</div>,
+		};
+	}
+	if (look.orb && (mode === "idle" || mode === "swallowed" || mode === "hidden")) {
+		return {
+			key: "orb",
+			node: (
+				<div className="grid h-full w-full place-items-center">
+					<span className="size-1.5 rounded-full bg-white/45" />
+				</div>
+			),
+		};
+	}
 
 	if (mode === "compact" && primary?.view.compact) {
 		return {
@@ -33,7 +51,7 @@ export function islandContent(ctl: IslandController, look: Appearance, v: Varian
 				entries={ctl.tabs}
 				current={ctl.tab}
 				onSelect={ctl.setTab}
-				iconsOnly={windows}
+				iconsOnly={floating}
 				bottom={v.tabsAtBottom}
 				transition={v.shellSpring}
 				extra={ctl.launcher ? undefined : focused?.view.tabBarExtra}
@@ -55,7 +73,7 @@ export function islandContent(ctl: IslandController, look: Appearance, v: Varian
 		};
 	}
 
-	if (windows && look.idleClock && (mode === "idle" || mode === "swallowed")) {
+	if (floating && look.idleClock && (mode === "idle" || mode === "swallowed")) {
 		return { key: "clock", node: <IdleClock /> };
 	}
 

@@ -21,7 +21,7 @@ import {
 import { Formatted } from "./Formatted";
 
 const userBubble =
-	"flex max-w-85 flex-col gap-1.5 self-end rounded-[15px] bg-[#2c2c2e] px-3 py-1.75 text-[13px] whitespace-pre-wrap";
+	"flex max-w-85 flex-col gap-1.5 self-end rounded-[15px] bg-white/17 px-3 py-1.75 text-[13px] whitespace-pre-wrap";
 
 /** "Ask Claude": a conversation with Claude Code (headless) inside the island. */
 export function AskPanel({ state }: { state: AskState | undefined }) {
@@ -200,7 +200,7 @@ export function AskPanel({ state }: { state: AskState | undefined }) {
 					{attachments.map((a) => (
 						<span
 							key={a.path}
-							className="flex max-w-60 items-center gap-1.75 rounded-[10px] bg-[#2c2c2e] p-[3px_4px] text-[12px]"
+							className="flex max-w-60 items-center gap-1.75 rounded-[10px] bg-white/17 p-[3px_4px] text-[12px]"
 							title={a.path}
 						>
 							{a.thumb ? (
