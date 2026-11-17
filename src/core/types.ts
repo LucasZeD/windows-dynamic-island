@@ -32,6 +32,18 @@ export interface ModuleView {
 	/** Small controls in the tab bar, next to the gear, while this tab is open (e.g. volume). */
 	tabBarExtra?: ReactNode;
 	/**
+	 * News worth a moment while the island rests. Each new `key` shows the
+	 * compact content once: as a speech bubble next to the orb (`bubble`), or
+	 * as a toast when something finished (`toast`). Without it, the module
+	 * taking the main slot counts as a bubble.
+	 */
+	notice?: {
+		key: string;
+		kind: "bubble" | "toast";
+		/** What it says, when not the compact content (e.g. another session finished). */
+		content?: ReactNode;
+	};
+	/**
 	 * Changing this value makes the island briefly auto-expand ("peek") to show
 	 * this module, e.g. a new track started. `undefined` never peeks.
 	 */

@@ -489,6 +489,18 @@
       pill: "Pílula",
       orb: "Esfera",
     },
+    toastSound: {
+      label: "Som quando algo termina",
+      desc: "Um toque curto junto com o aviso. Nas tarefas do Claude Code, o som “concluído” dele toca no lugar, se estiver ligado.",
+    },
+    preview: {
+      label: "Prévia",
+      desc: "Veja como as novidades aparecem na ilha: um balão de fala ao lado da esfera, ou um aviso quando algo termina (no notch, uma gota).",
+      bubble: "Balão",
+      toast: "Aviso",
+      bubbleText: "Pensando…",
+      toastText: "Concluído: refatorou o painel do chat",
+    },
     floatingOnly: "Disponível no estilo ilha.",
     tabsPosition: {
       label: "Posição dos ícones de módulos",

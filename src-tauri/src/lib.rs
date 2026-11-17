@@ -118,6 +118,7 @@ pub fn run() {
             settings::set_setting,
             settings::open_settings,
             settings::set_settings_look,
+            sound::play_toast_sound,
             settings::get_autostart,
             settings::set_autostart,
             settings::open_repo,

@@ -1,6 +1,9 @@
+import { emit } from "@tauri-apps/api/event";
 import { motion } from "motion/react";
 import type { ReactNode } from "react";
+import { DEMO_NOTICE_EVENT } from "../../components/island/Notices";
 import { LIQUID_EDGE, RimRing } from "../../components/island/Rim";
+import { Button } from "../../components/ui/button";
 import { Block, Card, card, Desc, Row } from "../../components/ui/card";
 import { Segmented } from "../../components/ui/form";
 import {
@@ -96,6 +99,21 @@ export function AppearancePage({ values }: { values: Record<string, unknown> }) 
 						onChange={(value) => setSetting(appearanceSettings.restShape, value)}
 					/>
 				</Row>
+				<Row label={t("appearance.preview.label")} desc={t("appearance.preview.desc")}>
+					<div className="flex gap-2">
+						<Button disabled={!look.orb} onClick={() => emit(DEMO_NOTICE_EVENT, "bubble").catch(() => {})}>
+							{t("appearance.preview.bubble")}
+						</Button>
+						<Button
+							// The pill shows news in itself: no bubbles or toasts.
+							disabled={look.floating && !look.orb}
+							onClick={() => emit(DEMO_NOTICE_EVENT, "toast").catch(() => {})}
+						>
+							{t("appearance.preview.toast")}
+						</Button>
+					</div>
+				</Row>
+				<ToggleRow def={appearanceSettings.toastSound} value={readSetting(values, appearanceSettings.toastSound)} />
 				<ToggleRow def={appearanceSettings.idleClock} value={readSetting(values, appearanceSettings.idleClock)} />
 				<Row
 					label={t("appearance.tabsPosition.label")}
