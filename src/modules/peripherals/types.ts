@@ -1,3 +1,5 @@
+import { between, slideColor } from "../../core/levelColor";
+
 /** Mirrors `Device` in `src-tauri/src/providers/peripherals.rs`. */
 export interface PeripheralDevice {
 	key: string;
@@ -33,18 +35,18 @@ export interface PeripheralsState {
 export const PERIPHERALS_PROVIDER = "peripherals";
 export const PERIPHERALS_ACCENT = "#64D2FF";
 
-const GREEN = "#30D158";
-const ORANGE = "#FF9F0A";
-const RED = "#FF453A";
+/** Battery left from which the color is plain green. */
+const CALM = 70;
 
-/** Halo Battery's ring colors: amber near the alert level, red below it, green while charging. */
+/**
+ * The system monitor's colors, for battery left: green from `CALM` up,
+ * sliding through yellow and orange to red at the device's alert level.
+ * Green while charging.
+ */
 export function levelColor(device: Pick<PeripheralDevice, "level" | "charging" | "lowAlertAt">): string {
-	if (device.charging) return GREEN;
-	const low = device.lowAlertAt ?? 20;
-	const level = device.level ?? 100;
-	if (level <= low) return RED;
-	if (level <= low + 15) return ORANGE;
-	return GREEN;
+	if (device.charging) return slideColor(0);
+	const low = Math.min(device.lowAlertAt ?? 20, CALM - 1);
+	return slideColor(between(device.level ?? 100, CALM, low));
 }
 
 /** Devices on battery at or below their alert level, awake. */

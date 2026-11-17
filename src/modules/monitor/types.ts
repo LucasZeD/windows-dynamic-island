@@ -1,3 +1,5 @@
+import { between, slideColor } from "../../core/levelColor";
+
 /** Mirrors `MonitorState` in `src-tauri/src/providers/monitor/mod.rs`. */
 export interface MonitorState {
 	/** Percent. */
@@ -23,13 +25,8 @@ export const NETWORK_BLUE = "#0A84FF";
 const CALM = 30;
 /** Usage from here on is full red. */
 const HOT = 95;
-/** Hues: Apple's green (≈135°) through yellow and orange to red (≈4°). */
-const GREEN_HUE = 135;
-const RED_HUE = 4;
 
 /** Green at low usage, sliding through yellow and orange to red as it climbs. */
 export function levelColor(percent: number): string {
-	const t = Math.min(1, Math.max(0, (percent - CALM) / (HOT - CALM)));
-	const hue = Math.round(GREEN_HUE + (RED_HUE - GREEN_HUE) * t);
-	return `hsl(${hue} 90% 56%)`;
+	return slideColor(between(percent, CALM, HOT));
 }
