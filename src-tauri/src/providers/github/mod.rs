@@ -161,10 +161,16 @@ impl Provider for GithubProvider {
                     Err(RecvTimeoutError::Disconnected) => return,
                 };
                 let (enabled, repos) = w.config();
-                let signature = format!("{enabled}|{repos:?}");
+                // The order doesn't count: reordering the list needs no new requests.
+                let mut sorted = repos.clone();
+                sorted.sort();
+                let signature = format!("{enabled}|{sorted:?}");
                 match reason {
-                    // Some other setting changed.
-                    Some(Wake::Settings) if signature == w.signature => continue,
+                    // Some other setting changed, or only the order.
+                    Some(Wake::Settings) if signature == w.signature => {
+                        w.reorder(&repos);
+                        continue;
+                    }
                     Some(Wake::Refresh)
                         if now_ms().saturating_sub(w.last_round) < MIN_REFRESH_GAP_MS =>
                     {
@@ -266,6 +272,21 @@ impl Worker {
             })
             .collect();
         (enabled, with_branches)
+    }
+
+    /// Puts the known repos in the user's order (no requests).
+    fn reorder(&mut self, repos: &[(String, Option<String>)]) {
+        let place = |name: &str| {
+            repos
+                .iter()
+                .position(|(r, _)| r.eq_ignore_ascii_case(name))
+                .unwrap_or(usize::MAX)
+        };
+        let before: Vec<String> = self.state.repos.iter().map(|r| r.name.clone()).collect();
+        self.state.repos.sort_by_key(|r| place(&r.name));
+        if self.state.repos.iter().map(|r| &r.name).ne(before.iter()) {
+            self.publish();
+        }
     }
 
     fn publish(&self) {

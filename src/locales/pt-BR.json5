@@ -357,7 +357,7 @@
     },
     repos: {
       title: "Repositórios",
-      desc: "Digite dono/repo ou cole um link do GitHub, seu ou de qualquer pessoa. As contagens atualizam a cada 5 minutos; sem login no GitHub, estrelas, releases e commits a cada 30.",
+      desc: "Digite dono/repo ou cole um link do GitHub, seu ou de qualquer pessoa. Arraste para reordenar: a ilha os mostra nesta ordem. As contagens atualizam a cada 5 minutos; sem login no GitHub, estrelas, releases e commits a cada 30.",
       placeholder: "dono/repo",
       add: "Adicionar",
       remove: "Remover",

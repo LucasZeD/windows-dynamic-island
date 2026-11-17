@@ -388,7 +388,7 @@
     },
     repos: {
       title: "Repositories",
-      desc: "Type owner/repo or paste a GitHub link, yours or anyone's. Counts refresh every 5 minutes; without a GitHub login, stars, releases and commits every 30.",
+      desc: "Type owner/repo or paste a GitHub link, yours or anyone's. Drag to reorder: the island lists them in this order. Counts refresh every 5 minutes; without a GitHub login, stars, releases and commits every 30.",
       placeholder: "owner/repo",
       add: "Add",
       remove: "Remove",
