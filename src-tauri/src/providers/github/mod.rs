@@ -1,4 +1,6 @@
-//! GitHub: open issue counts for the repositories the user follows.
+//! GitHub: the repositories the user follows: open issues and pull requests,
+//! stars, forks, the latest release and commit, and news when a release comes
+//! out or someone pushes.
 //!
 //! The repo list lives in the regular settings store (`github.repos`, edited by
 //! the settings window); this provider re-polls whenever it changes and every
@@ -33,6 +35,11 @@ const POLL_MS: u64 = 5 * 60 * 1000;
 /// Manual refreshes closer than this to the last round are ignored.
 const MIN_REFRESH_GAP_MS: u64 = 20_000;
 const MAX_REPOS: usize = 30;
+/// Releases and pushes kept for the frontend, newest first.
+const MAX_UPDATES: usize = 10;
+/// Without a login GitHub allows 60 calls an hour: a repository's details
+/// (3 calls) are then refreshed this rarely. Signed in, every round.
+const ANON_DETAILS_MS: u64 = 30 * 60 * 1000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -51,6 +58,27 @@ pub struct RepoState {
     pub open_issues: Option<u64>,
     pub latest: Option<api::Issue>,
     pub error: Option<&'static str>,
+    pub info: Option<api::RepoInfo>,
+    /// GitHub counts pull requests among the open issues: those minus the issues.
+    pub open_prs: Option<u64>,
+    pub release: Option<api::Release>,
+    pub commit: Option<api::Commit>,
+    /// When the details (info, release, commit) were last read; 0: never.
+    #[serde(skip)]
+    pub details_at: u64,
+}
+
+/// News from a followed repository since the previous poll.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Update {
+    pub repo: String,
+    /// `release` or `commit`.
+    pub kind: &'static str,
+    /// The release's tag, or the commit's first line.
+    pub title: String,
+    pub url: String,
+    pub seen_at: u64,
 }
 
 /// An issue that showed up since the previous poll (drives the peek).
@@ -74,6 +102,8 @@ pub struct GithubState {
     pub loading: bool,
     pub updated_at: Option<u64>,
     pub new_issue: Option<NewIssue>,
+    /// Releases and pushes seen while running, newest first.
+    pub updates: Vec<Update>,
 }
 
 enum Wake {
@@ -289,6 +319,14 @@ impl Worker {
                     repo.open_issues = Some(found.open);
                     repo.latest = found.latest;
                     repo.error = None;
+                    let due = token.is_some()
+                        || now_ms().saturating_sub(repo.details_at) > ANON_DETAILS_MS;
+                    if due
+                        && let Err(api::Error::RateLimited(until)) =
+                            self.details(i, token.as_deref())
+                    {
+                        self.state.rate_limited_until = Some(until);
+                    }
                 }
                 Err(api::Error::RateLimited(until)) => {
                     self.state.rate_limited_until = Some(until);
@@ -307,6 +345,69 @@ impl Worker {
         self.state.updated_at = Some(now_ms());
         self.publish();
     }
+}
+
+impl Worker {
+    /// Stars, forks, the latest release and commit of `repos[i]`, and news
+    /// when the release or the commit changed. Other errors leave the last
+    /// known details in place.
+    fn details(&mut self, i: usize, token: Option<&str>) -> Result<(), api::Error> {
+        let name = self.state.repos[i].name.clone();
+        let info = api::repo_info(&name, token)?;
+        let release = api::latest_release(&name, token)?;
+        let commit = api::latest_commit(&name, token)?;
+        let repo = &mut self.state.repos[i];
+        let news = news(repo, release.as_ref(), commit.as_ref(), now_ms());
+        repo.open_prs = repo
+            .open_issues
+            .map(|issues| info.open_issues_and_prs.saturating_sub(issues));
+        repo.info = Some(info);
+        repo.release = release;
+        repo.commit = commit;
+        repo.details_at = now_ms();
+        for update in news {
+            self.state.updates.insert(0, update);
+        }
+        self.state.updates.truncate(MAX_UPDATES);
+        Ok(())
+    }
+}
+
+/// What changed since `repo`'s details were last read. Nothing the first time:
+/// what's there when a repository is added (or the app starts) isn't news.
+fn news(
+    repo: &RepoState,
+    release: Option<&api::Release>,
+    commit: Option<&api::Commit>,
+    now: u64,
+) -> Vec<Update> {
+    if repo.details_at == 0 {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    if let Some(r) = release
+        && repo.release.as_ref().map(|p| &p.tag) != Some(&r.tag)
+    {
+        out.push(Update {
+            repo: repo.name.clone(),
+            kind: "release",
+            title: r.tag.clone(),
+            url: r.url.clone(),
+            seen_at: now,
+        });
+    }
+    if let Some(c) = commit
+        && repo.commit.as_ref().map(|p| &p.sha) != Some(&c.sha)
+    {
+        out.push(Update {
+            repo: repo.name.clone(),
+            kind: "commit",
+            title: c.title.clone(),
+            url: c.url.clone(),
+            seen_at: now,
+        });
+    }
+    out
 }
 
 /// `owner/name` with GitHub's allowed characters.
@@ -345,4 +446,66 @@ fn gh_token() -> Option<String> {
     }
     let token = String::from_utf8(out.stdout).ok()?.trim().to_string();
     (!token.is_empty()).then_some(token)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn release(tag: &str) -> api::Release {
+        api::Release {
+            tag: tag.into(),
+            name: None,
+            url: format!("https://github.com/o/r/releases/tag/{tag}"),
+            published_at: String::new(),
+        }
+    }
+
+    fn commit(sha: &str) -> api::Commit {
+        api::Commit {
+            sha: sha.into(),
+            title: format!("commit {sha}"),
+            author: None,
+            url: String::new(),
+            date: String::new(),
+        }
+    }
+
+    fn known(release_tag: Option<&str>, sha: &str) -> RepoState {
+        RepoState {
+            name: "o/r".into(),
+            release: release_tag.map(release),
+            commit: Some(commit(sha)),
+            details_at: 1,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn the_first_read_is_not_news() {
+        let fresh = RepoState {
+            name: "o/r".into(),
+            ..Default::default()
+        };
+        assert!(news(&fresh, Some(&release("v1")), Some(&commit("aaa")), 5).is_empty());
+    }
+
+    #[test]
+    fn a_new_release_and_a_push_are_news() {
+        let repo = known(Some("v1"), "aaa");
+        let out = news(&repo, Some(&release("v2")), Some(&commit("bbb")), 5);
+        let kinds: Vec<_> = out.iter().map(|u| (u.kind, u.title.as_str())).collect();
+        assert_eq!(kinds, [("release", "v2"), ("commit", "commit bbb")]);
+    }
+
+    #[test]
+    fn the_first_release_ever_is_news_and_nothing_new_is_not() {
+        let repo = known(None, "aaa");
+        assert_eq!(
+            news(&repo, Some(&release("v1")), Some(&commit("aaa")), 5).len(),
+            1
+        );
+        let same = known(Some("v1"), "aaa");
+        assert!(news(&same, Some(&release("v1")), Some(&commit("aaa")), 5).is_empty());
+    }
 }

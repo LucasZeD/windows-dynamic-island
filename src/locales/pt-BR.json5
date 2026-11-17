@@ -312,6 +312,36 @@
       label: "Expandir com issue nova",
       desc: "Abre a ilha por alguns segundos quando alguém abre uma issue.",
     },
+    notifyReleases: {
+      label: "Novas releases",
+      desc: "Um aviso quando um repositório seguido publica uma release.",
+    },
+    notifyCommits: {
+      label: "Novos commits",
+      desc: "Um aviso quando alguém faz push no branch principal de um repositório seguido. Repositórios movimentados fazem push com frequência.",
+    },
+    badge: {
+      release: "Release",
+      push: "Push",
+    },
+    stat: {
+      issues: "Issues abertas",
+      prs: "Pull requests abertos",
+      stars: "Estrelas",
+    },
+    pushed: "push {time}",
+    detailsPending: "Estrelas, releases e commits chegam na próxima atualização.",
+    noRelease: "Sem releases",
+    link: {
+      issues: "Issues",
+      prs: "Pull requests",
+      releases: "Releases",
+      repo: "Abrir no GitHub",
+    },
+    toast: {
+      release: "{repo} lançou {tag}",
+      commit: "{repo}: {title}",
+    },
     error: {
       notFound: "Não encontrado ou sem acesso",
       unauthorized: "Token recusado pelo GitHub",
@@ -321,7 +351,7 @@
     },
     repos: {
       title: "Repositórios",
-      desc: "Digite dono/repo ou cole um link do GitHub. As contagens atualizam a cada 5 minutos.",
+      desc: "Digite dono/repo ou cole um link do GitHub, seu ou de qualquer pessoa. As contagens atualizam a cada 5 minutos; sem login no GitHub, estrelas, releases e commits a cada 30.",
       placeholder: "dono/repo",
       add: "Adicionar",
       remove: "Remover",

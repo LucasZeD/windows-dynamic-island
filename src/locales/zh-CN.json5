@@ -335,6 +335,36 @@
       label: "有新 Issue 时自动展开",
       desc: "当有人提出新 Issue 时，展开灵动岛数秒以提示。",
     },
+    notifyReleases: {
+      label: "新发布",
+      desc: "关注的仓库发布新版本时显示提示。",
+    },
+    notifyCommits: {
+      label: "新提交",
+      desc: "有人推送到关注仓库的主分支时显示提示。活跃的仓库推送频繁。",
+    },
+    badge: {
+      release: "发布",
+      push: "推送",
+    },
+    stat: {
+      issues: "未关闭的 issue",
+      prs: "未合并的拉取请求",
+      stars: "星标",
+    },
+    pushed: "{time}推送",
+    detailsPending: "星标、发布和提交将在下次更新时显示。",
+    noRelease: "暂无发布",
+    link: {
+      issues: "Issues",
+      prs: "拉取请求",
+      releases: "发布",
+      repo: "在 GitHub 上打开",
+    },
+    toast: {
+      release: "{repo} 发布了 {tag}",
+      commit: "{repo}：{title}",
+    },
     error: {
       notFound: "未找到仓库或无权访问",
       unauthorized: "GitHub 拒绝了该 Token",
@@ -344,7 +374,7 @@
     },
     repos: {
       title: "仓库列表",
-      desc: "输入 owner/repo 或粘贴 GitHub 链接。计数每 5 分钟自动刷新一次。",
+      desc: "输入 owner/repo 或粘贴 GitHub 链接，自己的或任何人的都可以。计数每 5 分钟刷新；未登录 GitHub 时，星标、发布和提交每 30 分钟刷新。",
       placeholder: "owner/repo",
       add: "添加",
       remove: "移除",

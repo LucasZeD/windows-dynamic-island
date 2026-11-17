@@ -136,3 +136,176 @@ pub fn login(token: &str) -> Result<String, Error> {
     let v = get("/user", &[], Some(token))?;
     Ok(v["login"].as_str().unwrap_or_default().to_string())
 }
+
+/// What a repository's page shows at the top.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RepoInfo {
+    pub stars: u64,
+    pub forks: u64,
+    /// Issues and pull requests together (GitHub's `open_issues_count`).
+    pub open_issues_and_prs: u64,
+    pub language: Option<String>,
+    pub description: Option<String>,
+    /// ISO 8601: the last push to any branch.
+    pub pushed_at: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Release {
+    pub tag: String,
+    /// The release's title, when it has one besides the tag.
+    pub name: Option<String>,
+    pub url: String,
+    /// ISO 8601.
+    pub published_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Commit {
+    pub sha: String,
+    /// First line of the message.
+    pub title: String,
+    pub author: Option<String>,
+    pub url: String,
+    /// ISO 8601.
+    pub date: String,
+}
+
+pub fn repo_info(repo: &str, token: Option<&str>) -> Result<RepoInfo, Error> {
+    let v = get(&format!("/repos/{repo}"), &[], token)?;
+    Ok(parse_repo_info(&v))
+}
+
+fn parse_repo_info(v: &Value) -> RepoInfo {
+    let text = |k: &str| {
+        v[k].as_str()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+    };
+    RepoInfo {
+        stars: v["stargazers_count"].as_u64().unwrap_or(0),
+        forks: v["forks_count"].as_u64().unwrap_or(0),
+        open_issues_and_prs: v["open_issues_count"].as_u64().unwrap_or(0),
+        language: text("language"),
+        description: text("description"),
+        pushed_at: text("pushed_at"),
+    }
+}
+
+/// The newest published release (drafts and pre-releases aside); `None` without one.
+pub fn latest_release(repo: &str, token: Option<&str>) -> Result<Option<Release>, Error> {
+    match get(&format!("/repos/{repo}/releases/latest"), &[], token) {
+        Ok(v) => Ok(parse_release(&v)),
+        Err(Error::NotFound) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+fn parse_release(v: &Value) -> Option<Release> {
+    let tag = v["tag_name"].as_str()?.to_string();
+    let name = v["name"]
+        .as_str()
+        .map(str::trim)
+        .filter(|n| !n.is_empty() && *n != tag)
+        .map(str::to_string);
+    Some(Release {
+        tag,
+        name,
+        url: v["html_url"].as_str().unwrap_or_default().to_string(),
+        published_at: v["published_at"].as_str().unwrap_or_default().to_string(),
+    })
+}
+
+/// The newest commit on the default branch; `None` for an empty repository.
+pub fn latest_commit(repo: &str, token: Option<&str>) -> Result<Option<Commit>, Error> {
+    match get(
+        &format!("/repos/{repo}/commits"),
+        &[("per_page", "1")],
+        token,
+    ) {
+        Ok(v) => Ok(v.get(0).and_then(parse_commit)),
+        // An empty repository answers 409.
+        Err(Error::Http) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
+fn parse_commit(v: &Value) -> Option<Commit> {
+    let sha = v["sha"].as_str()?;
+    let message = v["commit"]["message"].as_str().unwrap_or_default();
+    Some(Commit {
+        sha: sha.chars().take(7).collect(),
+        title: message
+            .lines()
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_string(),
+        author: v["author"]["login"]
+            .as_str()
+            .or_else(|| v["commit"]["author"]["name"].as_str())
+            .map(str::to_string),
+        url: v["html_url"].as_str().unwrap_or_default().to_string(),
+        date: v["commit"]["committer"]["date"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string(),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn reads_a_repository() {
+        let info = parse_repo_info(&json!({
+            "stargazers_count": 1200, "forks_count": 34, "open_issues_count": 17,
+            "language": "Rust", "description": "  ", "pushed_at": "2026-11-17T10:00:00Z"
+        }));
+        assert_eq!(info.stars, 1200);
+        assert_eq!(info.forks, 34);
+        assert_eq!(info.open_issues_and_prs, 17);
+        assert_eq!(info.language.as_deref(), Some("Rust"));
+        // A blank description is no description.
+        assert_eq!(info.description, None);
+    }
+
+    #[test]
+    fn a_release_named_like_its_tag_has_no_separate_name() {
+        let r = parse_release(&json!({
+            "tag_name": "v1.2.0", "name": "v1.2.0",
+            "html_url": "https://github.com/o/r/releases/tag/v1.2.0",
+            "published_at": "2026-11-17T10:00:00Z"
+        }))
+        .unwrap();
+        assert_eq!(r.tag, "v1.2.0");
+        assert_eq!(r.name, None);
+        let named = parse_release(&json!({ "tag_name": "v2", "name": "Big one" })).unwrap();
+        assert_eq!(named.name.as_deref(), Some("Big one"));
+    }
+
+    #[test]
+    fn a_commit_keeps_its_short_sha_and_first_line() {
+        let c = parse_commit(&json!({
+            "sha": "0123456789abcdef",
+            "html_url": "https://github.com/o/r/commit/0123456",
+            "author": null,
+            "commit": {
+                "message": "Fix the thing\n\nLong explanation",
+                "author": { "name": "Someone" },
+                "committer": { "date": "2026-11-17T10:00:00Z" }
+            }
+        }))
+        .unwrap();
+        assert_eq!(c.sha, "0123456");
+        assert_eq!(c.title, "Fix the thing");
+        // No GitHub account linked: the git author's name.
+        assert_eq!(c.author.as_deref(), Some("Someone"));
+    }
+}
