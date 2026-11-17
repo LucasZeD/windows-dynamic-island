@@ -13,6 +13,7 @@
 		"app:dev": "tauri dev",
 		"app:build": "tauri build",
 		"app:build:local": "tauri build --config src-tauri/tauri.nosign.conf.json",
+		"app:build:personal": "powershell -NoProfile -ExecutionPolicy Bypass -File sidecars/peripherals/build.ps1 && tauri build --config src-tauri/tauri.nosign.conf.json --config src-tauri/tauri.peripherals.conf.json",
 		"package:store": "pwsh -NoProfile -File scripts/package-msix.ps1",
 		"v": "bun pm version",
 		"version": "bun scripts/sync-cargo-version.ts"

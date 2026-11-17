@@ -23,6 +23,7 @@ pub mod github;
 pub mod monitor;
 pub mod music;
 pub mod notifications;
+pub mod peripherals;
 pub mod process;
 pub mod shelf;
 pub mod shortcuts;
@@ -64,6 +65,7 @@ pub fn registry() -> Vec<Arc<dyn Provider>> {
         Arc::new(cursor::CursorProvider::default()),
         Arc::new(github::GithubProvider::default()),
         Arc::new(monitor::MonitorProvider::default()),
+        Arc::new(peripherals::PeripheralsProvider::default()),
         Arc::new(calendar::CalendarProvider::default()),
         Arc::new(shortcuts::ShortcutsProvider::default()),
     ]

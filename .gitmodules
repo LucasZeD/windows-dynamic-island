@@ -1,0 +1,3 @@
+[submodule "sidecars/peripherals/HaloBattery"]
+	path = sidecars/peripherals/HaloBattery
+	url = https://github.com/HeyOkay/HaloBattery.git
