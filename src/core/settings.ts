@@ -288,6 +288,13 @@ export const appearanceSettings = {
 		description: "appearance.liquidTint.desc",
 		default: "clear" as LiquidTint,
 	} satisfies SettingDef<LiquidTint>,
+	/** A short chime when a toast says something finished. */
+	toastSound: {
+		key: "appearance.toastSound",
+		label: "appearance.toastSound.label",
+		description: "appearance.toastSound.desc",
+		default: true,
+	} satisfies SettingDef,
 	restShape: {
 		key: "appearance.restShape",
 		label: "appearance.restShape.label",

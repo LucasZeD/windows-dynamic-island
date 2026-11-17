@@ -529,6 +529,18 @@
       pill: "Pill",
       orb: "Orb",
     },
+    toastSound: {
+      label: "Sound when something finishes",
+      desc: "A short chime with the toast. For Claude Code tasks, its own “done” sound plays instead when it’s on.",
+    },
+    preview: {
+      label: "Preview",
+      desc: "See how news pops up on the island: a speech bubble by the orb, or a toast when something finishes (in the notch, a drop).",
+      bubble: "Bubble",
+      toast: "Toast",
+      bubbleText: "Thinking…",
+      toastText: "Finished: refactored the chat panel",
+    },
     floatingOnly: "Available in the island style.",
     tabsPosition: {
       label: "Module switcher position",

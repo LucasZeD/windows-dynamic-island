@@ -82,6 +82,10 @@ export const aiAgentsModule: IslandModule = {
 			(s.status === "done" && now - (s.finishedAt ?? 0) < DONE_VISIBLE_MS);
 
 		const hot = sessions.find(isHot);
+		// The latest to finish: two finishing in a row each get their toast (they stack).
+		const justDone = sessions
+			.filter(({ session: s }) => s.status === "done" && now - (s.finishedAt ?? 0) < DONE_VISIBLE_MS)
+			.sort((a, b) => (b.session.finishedAt ?? 0) - (a.session.finishedAt ?? 0))[0];
 		const busyCount = sessions.filter((s) => s.session.status === "working" || s.session.status === "waiting").length;
 		const recent = sessions
 			.filter((s) => s.session.status !== "idle" || now - s.session.lastEventAt < RECENT_MS)
@@ -112,6 +116,15 @@ export const aiAgentsModule: IslandModule = {
 							(snapshots.some((s) => s.usage?.daily.length) ? USAGE_CHART : 0) +
 							(visible.length > 1 ? AGENT_TABS : 0),
 					},
+			// A turn finishing (any session, even while another one works), else the
+			// busiest one starting or waiting on you: once each.
+			notice: justDone
+				? {
+						key: `${justDone.agent.id}:${justDone.session.id}:done:${justDone.session.finishedAt}`,
+						kind: "toast",
+						content: <AgentCompactLeft hot={justDone} busyCount={0} />,
+					}
+				: hot && { key: `${hot.agent.id}:${hot.session.id}:${hot.session.status}`, kind: "bubble" },
 			// Peek when an agent needs you, just finished or its limits reset (each is a setting).
 			activityKey:
 				hot && peekOn[hot.session.status]

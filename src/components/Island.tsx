@@ -18,6 +18,7 @@ import { islandContent } from "./island/content";
 import { GlassProbes } from "./island/GlassProbes";
 import { ambientWidth, BUBBLE, BUBBLE_GAP, geometry, variantOf } from "./island/geometry";
 import { launcherSize } from "./island/Launcher";
+import { Notices } from "./island/Notices";
 import { LiquidRim, Rim } from "./island/Rim";
 import { Surface } from "./island/Surface";
 import { useIslandFileDrop } from "./island/useIslandFileDrop";
@@ -141,6 +142,16 @@ export function Island() {
 
 						<AmbientBubbles entries={ctl.entries} visible={resting} shrunk={mode === "idle" && !floating} {...bubble} />
 						<SecondaryBubble entry={showSecondary ? secondary : undefined} {...bubble} />
+						<Notices
+							primary={primary}
+							entries={ctl.entries}
+							mode={mode}
+							look={look}
+							transition={v.shellSpring}
+							rim={rim}
+							beside={showSecondary}
+							onOpen={ctl.expand}
+						/>
 					</motion.div>
 				</motion.div>
 			</div>

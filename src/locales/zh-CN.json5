@@ -520,6 +520,18 @@
       pill: "胶囊",
       orb: "圆点",
     },
+    toastSound: {
+      label: "完成时播放提示音",
+      desc: "提示出现时播放简短的提示音。若开启了 Claude Code 自己的“完成”音效，其任务将改为播放该音效。",
+    },
+    preview: {
+      label: "预览",
+      desc: "看看消息如何在灵动岛上弹出：圆点旁的对话气泡，或任务完成时的提示（刘海样式下为水滴）。",
+      bubble: "气泡",
+      toast: "提示",
+      bubbleText: "思考中…",
+      toastText: "已完成：重构了聊天面板",
+    },
     floatingOnly: "仅适用于灵动岛样式。",
     tabsPosition: {
       label: "模块切换栏位置",
