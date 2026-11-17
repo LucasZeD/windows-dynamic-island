@@ -10,6 +10,11 @@ Based on upstream 0.5.0, including its dependency updates up to 2026-11-17.
 
 ### Added
 
+- Notes module, a small Obsidian in the island: a folder of Markdown files (`Documents/Island Notes` by
+  default, changeable in its settings) shown as a tree (create, rename, drag to move, delete to `.trash`),
+  notes open in tabs and save as you type. Live preview like Obsidian/Notion: the Markdown is drawn except on
+  the line being edited (headings, bold, checkboxes, quotes, code, links). Web links, `[[wiki links]]` to other
+  notes, and pictures pasted with Ctrl+V, saved in `attachments/`, which unfold in the note and open full size.
 - ChatGPT and Gemini modules: the sites inside the island, signed in with the user's own account. The panel
   size is configurable (480 × 960 by default) and the page steps aside while the island is dragged.
 - The Ask chats (Claude, ChatGPT, Gemini) are grouped as one switch at the end of the tab bar.

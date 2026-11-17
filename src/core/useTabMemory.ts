@@ -2,8 +2,8 @@ import { useCallback, useRef, useState } from "react";
 
 /** The island reopens on the last tab used if it closed less than this ago. */
 const REMEMBER_TAB_MS = 5 * 60_000;
-/** Tabs the island reopens on however long ago it closed (the chats: hover, ask, done). */
-const STICKY_TABS = new Set(["chatgpt", "gemini"]);
+/** Tabs the island reopens on however long ago it closed (the chats, notes). */
+const STICKY_TABS = new Set(["chatgpt", "gemini", "notes"]);
 
 /**
  * The tab the user is on (`null`: the default, the busiest module). It

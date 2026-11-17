@@ -798,6 +798,39 @@
   },
 
   // Shelf module
+  notes: {
+    title: "Notes",
+    newNote: "New note",
+    newFolder: "New folder",
+    untitled: "Untitled",
+    untitledFolder: "New folder",
+    rename: "Rename",
+    delete: "Delete",
+    confirmDelete: "Click again to delete (it goes to .trash in the notes folder)",
+    openFolder: "Open the notes folder",
+    showTree: "Show the notes",
+    hideTree: "Hide the notes",
+    closeTab: "Close",
+    emptyTree: "No notes yet.",
+    noNote: "Open a note from the list, or start one.",
+    placeholder: "Write in Markdown… paste pictures with Ctrl+V",
+    saving: "Saving…",
+    saveFailed: "Couldn't save",
+    failed: "That didn't work",
+    exists: "Something with that name is already there",
+    folderError: "Can't open the notes folder.",
+    folder: {
+      label: "Notes folder",
+      desc: "Every note is a Markdown file in this folder.",
+      change: "Change…",
+      reset: "Default",
+    },
+    size: {
+      width: "Panel width",
+      height: "Panel height",
+    },
+  },
+
   shelf: {
     title: "Shelf",
     empty: "Keep files here, then drag them anywhere.",

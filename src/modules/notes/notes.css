@@ -1,0 +1,200 @@
+/* The notes editor (CodeMirror with live preview, see `editor/livePreview.ts`).
+   Colors come from the island's tokens, so the light theme just works. */
+
+.notes-editor {
+	--notes-mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+
+.notes-editor .cm-editor {
+	height: 100%;
+	color: var(--text);
+	background: transparent;
+	font-size: 14px;
+}
+
+.notes-editor .cm-editor.cm-focused {
+	outline: none;
+}
+
+.notes-editor .cm-scroller {
+	font-family: inherit;
+	line-height: 1.6;
+	overflow: auto;
+	padding-bottom: 40px;
+}
+
+.notes-editor .cm-scroller::-webkit-scrollbar,
+.notes-scroll::-webkit-scrollbar,
+.notes-tabs::-webkit-scrollbar {
+	width: 6px;
+	height: 0;
+}
+
+.notes-editor .cm-scroller::-webkit-scrollbar-thumb,
+.notes-scroll::-webkit-scrollbar-thumb {
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.notes-editor .cm-content {
+	padding: 4px 0;
+	caret-color: var(--accent);
+	user-select: text;
+}
+
+.notes-editor .cm-line {
+	padding: 0 10px 0 6px;
+}
+
+.notes-editor .cm-cursor {
+	border-left: 2px solid var(--accent);
+}
+
+/* More specific than CodeMirror's own selection colors. */
+.notes-editor .cm-editor .cm-scroller .cm-selectionLayer .cm-selectionBackground,
+.notes-editor .cm-editor.cm-focused .cm-scroller .cm-selectionLayer .cm-selectionBackground {
+	background: color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+.notes-editor .cm-placeholder {
+	color: var(--text-faint);
+}
+
+/* Headings */
+.notes-editor .cm-md-h1 {
+	font-size: 1.7em;
+	font-weight: 700;
+	line-height: 1.3;
+	padding-top: 6px;
+}
+.notes-editor .cm-md-h2 {
+	font-size: 1.4em;
+	font-weight: 700;
+	line-height: 1.3;
+	padding-top: 4px;
+}
+.notes-editor .cm-md-h3 {
+	font-size: 1.2em;
+	font-weight: 650;
+}
+.notes-editor .cm-md-h4,
+.notes-editor .cm-md-h5,
+.notes-editor .cm-md-h6 {
+	font-size: 1.05em;
+	font-weight: 650;
+}
+
+/* Links */
+.notes-editor .cm-md-link {
+	color: var(--accent);
+	text-decoration: underline;
+	text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+	text-underline-offset: 2px;
+	cursor: pointer;
+}
+.notes-editor .cm-md-wiki {
+	text-decoration-style: dotted;
+}
+.notes-editor .cm-md-url {
+	color: var(--text-faint);
+}
+
+/* Code */
+.notes-editor .cm-md-code {
+	font-family: var(--notes-mono);
+	font-size: 0.88em;
+	padding: 1px 4px;
+	border-radius: 4px;
+	background: var(--card);
+}
+.notes-editor .cm-md-codeblock {
+	font-family: var(--notes-mono);
+	font-size: 0.88em;
+	background: var(--card);
+	padding-left: 12px;
+}
+.notes-editor .cm-md-codeblock.is-first {
+	border-top-left-radius: 6px;
+	border-top-right-radius: 6px;
+}
+.notes-editor .cm-md-codeblock.is-last {
+	border-bottom-left-radius: 6px;
+	border-bottom-right-radius: 6px;
+}
+
+/* Quotes, rules */
+.notes-editor .cm-md-quote {
+	border-left: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+	padding-left: 12px;
+	color: var(--text-dim);
+}
+.notes-editor .cm-md-hr {
+	position: relative;
+}
+.notes-editor .cm-md-hr::after {
+	content: "";
+	position: absolute;
+	left: 6px;
+	right: 10px;
+	top: 50%;
+	border-top: 1px solid var(--hairline);
+	border-top-color: color-mix(in srgb, var(--text) 18%, transparent);
+	pointer-events: none;
+}
+
+/* Lists */
+.notes-editor .cm-md-bullet {
+	display: inline-block;
+	width: 0.9em;
+	color: var(--text-dim);
+	font-weight: 700;
+}
+.notes-editor .cm-md-check {
+	width: 13px;
+	height: 13px;
+	margin: 0 4px 0 1px;
+	vertical-align: -2px;
+	accent-color: var(--accent);
+	cursor: pointer;
+}
+.notes-editor .cm-md-done {
+	color: var(--text-faint);
+	text-decoration: line-through;
+}
+
+/* Pictures: a chip, unfolding below its line. */
+.notes-editor .cm-md-image-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	max-width: 100%;
+	padding: 0 8px 0 6px;
+	border-radius: 6px;
+	background: var(--card);
+	color: var(--accent);
+	font-size: 0.9em;
+	cursor: pointer;
+	vertical-align: 1px;
+}
+.notes-editor .cm-md-image-chip:hover,
+.notes-editor .cm-md-image-chip.is-open {
+	background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.notes-editor .cm-md-image-icon {
+	font-size: 0.8em;
+	opacity: 0.8;
+}
+.notes-editor .cm-md-image {
+	padding: 4px 10px 6px 6px;
+}
+.notes-editor .cm-md-image img {
+	display: block;
+	max-width: 100%;
+	max-height: 320px;
+	border-radius: 8px;
+	cursor: zoom-in;
+}
+.notes-editor .cm-md-image.is-missing {
+	color: var(--text-faint);
+	font-size: 0.85em;
+}
