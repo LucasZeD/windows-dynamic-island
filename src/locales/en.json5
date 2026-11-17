@@ -339,6 +339,39 @@
       label: "Expand on new issue",
       desc: "Opens the island for a few seconds when someone opens an issue.",
     },
+    notifyReleases: {
+      label: "New releases",
+      desc: "A toast when a followed repository publishes a release.",
+    },
+    notifyCommits: {
+      label: "New commits",
+      desc: "A toast when someone pushes to a followed repository's main branch. Busy repositories push often.",
+    },
+    badge: {
+      release: "Release",
+      push: "Push",
+    },
+    stat: {
+      issues: "Open issues",
+      prs: "Open pull requests",
+      stars: "Stars",
+    },
+    // {time}: relative time, e.g. "5 min ago"
+    pushed: "pushed {time}",
+    detailsPending: "Stars, releases and commits arrive with the next update.",
+    noRelease: "No releases",
+    link: {
+      issues: "Issues",
+      prs: "Pull requests",
+      releases: "Releases",
+      repo: "Open on GitHub",
+    },
+    toast: {
+      // {repo}: owner/name, {tag}: e.g. v1.2.0
+      release: "{repo} released {tag}",
+      // {repo}: owner/name, {title}: the commit's first line
+      commit: "{repo}: {title}",
+    },
     error: {
       notFound: "Not found or no access",
       unauthorized: "Token rejected by GitHub",
@@ -348,7 +381,7 @@
     },
     repos: {
       title: "Repositories",
-      desc: "Type owner/repo or paste a GitHub link. Counts refresh every 5 minutes.",
+      desc: "Type owner/repo or paste a GitHub link, yours or anyone's. Counts refresh every 5 minutes; without a GitHub login, stars, releases and commits every 30.",
       placeholder: "owner/repo",
       add: "Add",
       remove: "Remove",
