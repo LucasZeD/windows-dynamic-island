@@ -389,6 +389,48 @@
     },
   },
 
+  cursor: {
+    limit: {
+      total: "Total",
+      auto: "Auto + Composer",
+      api: "API",
+    },
+    cycle: "Mensal",
+    signedOut: "Entre no Cursor para ver o uso do seu plano.",
+    expired: "O login do Cursor expirou. Abra o Cursor para renová-lo.",
+    network: "Não foi possível acessar o Cursor. Tentando de novo automaticamente.",
+    api: "Não foi possível ler os dados de uso do Cursor. Tentando de novo automaticamente.",
+    open: "Abrir o Cursor",
+    integration: {
+      title: "Integração",
+      desc: "Uso do plano e tokens da sua conta do Cursor, com o login que o Cursor guarda neste computador. Ele só é enviado ao cursor.com.",
+      found: "Conectado ({plan})",
+      signedOut: "Não conectado",
+      missing: "Cursor não encontrado",
+    },
+  },
+
+  chat: {
+    chatgpt: "ChatGPT",
+    gemini: "Gemini",
+    askChatgpt: "Pergunte ao ChatGPT",
+    askGemini: "Pergunte ao Gemini",
+    loading: "Abrindo {site}…",
+    failed: "Não foi possível abrir {site}.",
+    home: "Página inicial",
+    external: "Abrir no navegador",
+    size: {
+      label: "Tamanho do chat",
+      desc: "Largura e altura do painel do ChatGPT e do Gemini (os dois usam o mesmo). A ilha mantém dentro da tela.",
+      tall: "Alto 480 × 960",
+      wide: "Largo 720 × 514",
+      large: "Grande 760 × 900",
+      custom: "Personalizado",
+      width: "Largura",
+      height: "Altura",
+    },
+  },
+
   antigravity: {
     notRunning: "Abra o Antigravity e entre na conta para ver a cota do plano.",
     launch: "Abrir Antigravity",

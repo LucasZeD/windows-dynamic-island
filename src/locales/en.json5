@@ -420,6 +420,30 @@
     },
   },
 
+  // Cursor: plan usage and tokens from the Cursor account (src-tauri/src/providers/cursor.rs)
+  cursor: {
+    limit: {
+      total: "Total",
+      auto: "Auto + Composer",
+      api: "API",
+    },
+    // Suffix of the limits: they reset with the billing cycle
+    cycle: "Monthly",
+    signedOut: "Sign in to Cursor to see your plan usage.",
+    expired: "Cursor's sign-in expired. Open Cursor to renew it.",
+    network: "Couldn't reach Cursor. Retrying automatically.",
+    api: "Cursor's usage data couldn't be read. Retrying automatically.",
+    open: "Open Cursor",
+    integration: {
+      title: "Integration",
+      desc: "Plan usage and tokens from your Cursor account, with the sign-in Cursor keeps on this computer. It is only sent to cursor.com.",
+      // {plan}: pro, free…
+      found: "Signed in ({plan})",
+      signedOut: "Not signed in",
+      missing: "Cursor not found",
+    },
+  },
+
   antigravity: {
     notRunning: "Open Antigravity and sign in to see its plan quota.",
     launch: "Open Antigravity",

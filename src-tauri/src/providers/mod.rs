@@ -17,6 +17,7 @@ pub mod claude;
 pub mod clipboard;
 pub mod codex;
 pub mod credentials;
+pub mod cursor;
 pub mod find;
 pub mod github;
 pub mod monitor;
@@ -60,6 +61,7 @@ pub fn registry() -> Vec<Arc<dyn Provider>> {
         Arc::new(claude::ClaudeProvider::default()),
         Arc::new(codex::CodexProvider),
         Arc::new(antigravity::AntigravityProvider::default()),
+        Arc::new(cursor::CursorProvider::default()),
         Arc::new(github::GithubProvider::default()),
         Arc::new(monitor::MonitorProvider::default()),
         Arc::new(calendar::CalendarProvider::default()),
