@@ -234,12 +234,33 @@ export const ISLAND_OFFSET_KEY = "island.offset";
 export const ISLAND_HIDDEN_KEY = "island.hidden";
 
 /**
- * Look of the island:
- * - `dynamic`: hangs from the top edge with concave "ears", like the notch.
- * - `windows`: a floating pill with rounded corners, a tab bar at the bottom,
- *   a clock at rest and an optional gradient rim (Windows Island's look).
+ * Shape of the island:
+ * - `dynamic`: the notch, hanging from the top edge with concave "ears".
+ * - `windows`: the island, floating below the edge (an orb or a pill at rest),
+ *   with an optional gradient rim.
+ *
+ * An older build also stored `liquid` here (now the island in the Liquid Glass
+ * material, see `core/appearance.ts`).
  */
 export type IslandStyle = "dynamic" | "windows";
+export const ISLAND_STYLES: IslandStyle[] = ["dynamic", "windows"];
+
+/** Light or dark island; `auto` follows Windows' app mode. */
+export type IslandTheme = "dark" | "light" | "auto";
+export const ISLAND_THEMES: IslandTheme[] = ["dark", "light", "auto"];
+
+/**
+ * What the island is made of: solid, frosted glass (the desktop blurred
+ * behind it) or Liquid Glass (clearer glass that catches the light).
+ */
+export type Material = "solid" | "frosted" | "liquid";
+export const MATERIALS: Material[] = ["solid", "frosted", "liquid"];
+
+/** Liquid Glass: clear (lighter), or tinted (darker in the dark theme, more opaque in the light one). */
+export type LiquidTint = "clear" | "tinted";
+
+/** The floating styles at rest: a pill with the busiest module's content, or a small orb. */
+export type RestShape = "pill" | "orb";
 
 export const appearanceSettings = {
 	style: {
@@ -248,6 +269,31 @@ export const appearanceSettings = {
 		description: "appearance.style.desc",
 		default: "dynamic",
 	} as SettingDef<IslandStyle>,
+	theme: {
+		key: "appearance.theme",
+		label: "appearance.theme.label",
+		description: "appearance.theme.desc",
+		default: "dark" as IslandTheme,
+	} satisfies SettingDef<IslandTheme>,
+	/** Unset on older installs: then derived from the old style / glass settings. */
+	material: {
+		key: "appearance.material",
+		label: "appearance.material.label",
+		description: "appearance.material.desc",
+		default: "solid" as Material,
+	} satisfies SettingDef<Material>,
+	liquidTint: {
+		key: "appearance.liquidTint",
+		label: "appearance.liquidTint.label",
+		description: "appearance.liquidTint.desc",
+		default: "clear" as LiquidTint,
+	} satisfies SettingDef<LiquidTint>,
+	restShape: {
+		key: "appearance.restShape",
+		label: "appearance.restShape.label",
+		description: "appearance.restShape.desc",
+		default: "orb" as RestShape,
+	} satisfies SettingDef<RestShape>,
 	tabsPosition: {
 		key: "appearance.tabsPosition",
 		label: "appearance.tabsPosition.label",

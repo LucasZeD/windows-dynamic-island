@@ -35,6 +35,17 @@ export function Rim({ look }: { look: Appearance }) {
 	return <RimRing background={background} width={background ? look.thickness : 1} animate={look.animate} />;
 }
 
+/**
+ * Liquid Glass's edge: light caught at the top-left and bottom-right corners,
+ * nearly clear in between.
+ */
+export const LIQUID_EDGE =
+	"linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.14) 28%, rgba(255,255,255,0.04) 55%, rgba(255,255,255,0.22) 80%, rgba(255,255,255,0.6))";
+
+export function LiquidRim() {
+	return <RimRing background={LIQUID_EDGE} width={1} />;
+}
+
 /** A glow in the rim's middle color, when turned on. */
 export function glowStyle(look: Appearance): CSSProperties | undefined {
 	if (!look.glow || !look.rim.length) return undefined;

@@ -24,17 +24,18 @@ export function Surface({
 	rim: ReactNode;
 	children: ReactNode;
 }) {
-	const windows = look.style === "windows";
+	const liquid = look.material === "liquid";
 	return (
 		<motion.div
 			data-glass
 			className={cn(
 				"absolute inset-0 overflow-hidden bg-island shadow-[0_14px_34px_-14px_rgba(0,0,0,0.7)] transition-shadow duration-400 ease-[ease]",
 				big && "shadow-[0_26px_60px_-18px_rgba(0,0,0,0.85),inset_0_-1px_0_rgba(255,255,255,0.06)]",
+				liquid && LIQUID_SURFACE,
 			)}
-			style={windows ? glowStyle(look) : undefined}
+			style={look.floating ? glowStyle(look) : undefined}
 			initial={false}
-			animate={cornerRadius(g, windows)}
+			animate={cornerRadius(g, look.floating)}
 			transition={transition}
 		>
 			<AnimatePresence mode="popLayout" initial={false}>
@@ -59,8 +60,16 @@ export function Surface({
 					{children}
 				</motion.div>
 			</AnimatePresence>
+			{liquid && <span className={LIQUID_SHEEN} />}
 			{rim}
 			<GlassProbes />
 		</motion.div>
 	);
 }
+
+/** Lit from above: brighter at the top, a soft lift at the bottom, a thin inner light line. */
+const LIQUID_SURFACE =
+	"bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.02)_42%,rgba(255,255,255,0.05))] shadow-[inset_0_1px_0.5px_rgba(255,255,255,0.4),inset_0_-1px_1px_rgba(255,255,255,0.1),0_18px_40px_-16px_rgba(0,0,0,0.55)]";
+/** The glossy highlight across the top half. */
+const LIQUID_SHEEN =
+	"pointer-events-none absolute inset-x-0 top-0 z-1 h-[45%] max-h-16 bg-[radial-gradient(70%_100%_at_50%_0%,rgba(255,255,255,0.1),transparent_75%)]";

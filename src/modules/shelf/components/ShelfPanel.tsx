@@ -89,7 +89,7 @@ function Tile({ item }: { item: ShelfItem }) {
 			{askEnabled && (
 				<button
 					type="button"
-					className="absolute top-1 hidden size-5 place-items-center rounded-full bg-[#3a3a3c] text-[13px] leading-none group-hover:grid hover:bg-[#4a4a4e] left-1"
+					className="absolute top-1 hidden size-5 place-items-center rounded-full bg-white/23 text-[13px] leading-none group-hover:grid hover:bg-white/29 left-1"
 					title={t("shelf.ask")}
 					onClick={() => {
 						attachFiles([item.path]);
@@ -102,7 +102,7 @@ function Tile({ item }: { item: ShelfItem }) {
 			)}
 			<button
 				type="button"
-				className="absolute top-1 hidden size-5 place-items-center rounded-full bg-[#3a3a3c] text-[13px] leading-none group-hover:grid hover:bg-[#4a4a4e] right-1"
+				className="absolute top-1 hidden size-5 place-items-center rounded-full bg-white/23 text-[13px] leading-none group-hover:grid hover:bg-white/29 right-1"
 				title={t("shelf.remove")}
 				onClick={() => shelfAction("remove", item.path)}
 			>

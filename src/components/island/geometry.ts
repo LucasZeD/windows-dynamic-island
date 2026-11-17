@@ -47,6 +47,9 @@ const WINDOWS: Variant = {
 };
 /** Windows Island at rest without the clock: a small, empty pill. */
 const WINDOWS_BARE_IDLE: Geo = { width: 110, height: 30, radius: 15, ear: 0 };
+/** Floating styles resting as an orb: empty, and holding the busiest module's glyph. */
+export const ORB_IDLE: Geo = { width: 30, height: 30, radius: 15, ear: 0 };
+export const ORB: Geo = { width: 40, height: 40, radius: 20, ear: 0 };
 
 /**
  * Tallest the island may grow (px). The window is `STRIP_HEIGHT` (640, see
@@ -61,7 +64,7 @@ export const BUBBLE_GAP = 10;
 const AMBIENT_GAP = 8;
 
 export function variantOf(look: Appearance): Variant {
-	return look.style === "windows" ? { ...WINDOWS, tabsAtBottom: look.tabsPosition === "bottom" } : DYNAMIC;
+	return look.floating ? { ...WINDOWS, tabsAtBottom: look.tabsPosition === "bottom" } : DYNAMIC;
 }
 
 /** The island's size and shape in a given mode. */
@@ -76,8 +79,10 @@ export function geometry(
 		case "hidden":
 		case "swallowed":
 		case "idle":
-			return look.style === "windows" && !look.idleClock ? WINDOWS_BARE_IDLE : v.idle;
+			if (look.orb) return ORB_IDLE;
+			return look.floating && !look.idleClock ? WINDOWS_BARE_IDLE : v.idle;
 		case "compact":
+			if (look.orb) return ORB;
 			return { ...v.compact, width: primary?.view.compact?.width ?? v.compact.width };
 		case "peek":
 		case "expanded": {

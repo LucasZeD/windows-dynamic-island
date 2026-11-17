@@ -72,7 +72,7 @@ export function MusicPanel({
 				>
 					<Artwork src={music.thumbnail} size={112} radius={20} trackKey={music.title} glow={accent} />
 					{music.appIcon && !pinned && (
-						<span className="pointer-events-none absolute -right-1 -bottom-1 grid size-6.5 place-items-center rounded-[9px] bg-[#1c1c1f] shadow-[0_0_0_2.5px_#000]">
+						<span className="pointer-events-none absolute -right-1 -bottom-1 grid size-6.5 place-items-center rounded-[9px] bg-white/11 shadow-[0_0_0_2.5px_#000]">
 							<img src={music.appIcon} alt="" draggable={false} className="size-4" />
 						</span>
 					)}

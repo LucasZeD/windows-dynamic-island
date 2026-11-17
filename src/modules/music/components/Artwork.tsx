@@ -17,7 +17,7 @@ export function Artwork({
 }) {
 	return (
 		<div
-			className="relative flex-none overflow-hidden bg-[#1c1c1f] transition-shadow duration-600 ease-[ease]"
+			className="relative flex-none overflow-hidden bg-white/11 transition-shadow duration-600 ease-[ease]"
 			style={{
 				width: size,
 				height: size,

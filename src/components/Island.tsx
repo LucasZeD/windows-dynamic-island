@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { useEffect, useMemo } from "react";
-import { useAppearance } from "../core/appearance";
+import { glassTint, useAppearance } from "../core/appearance";
 import { useTauriEvent } from "../core/bridge";
 import { cn } from "../core/cn";
 import { useSyncLocale } from "../core/i18n";
@@ -18,7 +18,7 @@ import { islandContent } from "./island/content";
 import { GlassProbes } from "./island/GlassProbes";
 import { ambientWidth, BUBBLE, BUBBLE_GAP, geometry, variantOf } from "./island/geometry";
 import { launcherSize } from "./island/Launcher";
-import { Rim } from "./island/Rim";
+import { LiquidRim, Rim } from "./island/Rim";
 import { Surface } from "./island/Surface";
 import { useIslandFileDrop } from "./island/useIslandFileDrop";
 import { PluginBackgrounds } from "./plugins/PluginBackgrounds";
@@ -27,10 +27,11 @@ export function Island() {
 	const ctl = useIslandController(modules);
 	const { mode, primary, secondary, focused } = ctl;
 	const look = useAppearance();
-	const windows = look.style === "windows";
+	const floating = look.floating;
 	const v = variantOf(look);
 	useHitRects();
-	useGlass(look.glass);
+	useGlass(look.glass, glassTint(look));
+	useThemeAttribute(look.theme);
 	useSyncLocale();
 	useIslandFileDrop(ctl);
 
@@ -67,7 +68,8 @@ export function Island() {
 	}, [ctl.expand, ctl.collapse]);
 
 	const content = islandContent(ctl, look, v);
-	const rim = windows ? <Rim look={look} /> : null;
+	// The island's edge: the chosen rim; Liquid Glass without one catches the light instead.
+	const rim = !floating ? null : look.material === "liquid" && !look.rim.length ? <LiquidRim /> : <Rim look={look} />;
 	const bubble = { transition: v.shellSpring, rim, onOpen: ctl.expand };
 
 	return (
@@ -110,7 +112,7 @@ export function Island() {
 						onClick={() => resting && ctl.expand()}
 					>
 						{/* Concave "ears" that blend the notch into the top edge of the screen. */}
-						{!windows && (
+						{!floating && (
 							<>
 								<motion.span
 									data-glass="earLeft"
@@ -137,11 +139,18 @@ export function Island() {
 							{content.node}
 						</Surface>
 
-						<AmbientBubbles entries={ctl.entries} visible={resting} shrunk={mode === "idle" && !windows} {...bubble} />
+						<AmbientBubbles entries={ctl.entries} visible={resting} shrunk={mode === "idle" && !floating} {...bubble} />
 						<SecondaryBubble entry={showSecondary ? secondary : undefined} {...bubble} />
 					</motion.div>
 				</motion.div>
 			</div>
 		</IslandContext.Provider>
 	);
+}
+
+/** Light theme: `styles.css` swaps the island's colors under `[data-theme="light"]`. */
+function useThemeAttribute(theme: "dark" | "light") {
+	useEffect(() => {
+		document.documentElement.dataset.theme = theme;
+	}, [theme]);
 }
