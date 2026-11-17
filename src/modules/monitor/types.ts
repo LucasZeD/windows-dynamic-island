@@ -19,9 +19,17 @@ export const MONITOR_PROVIDER = "monitor";
 export const MONITOR_GREEN = "#30D158";
 export const NETWORK_BLUE = "#0A84FF";
 
-/** Green, then orange, then red as a percentage climbs. */
+/** Usage up to here is plain green; from here the color slides toward red. */
+const CALM = 30;
+/** Usage from here on is full red. */
+const HOT = 95;
+/** Hues: Apple's green (≈135°) through yellow and orange to red (≈4°). */
+const GREEN_HUE = 135;
+const RED_HUE = 4;
+
+/** Green at low usage, sliding through yellow and orange to red as it climbs. */
 export function levelColor(percent: number): string {
-	if (percent >= 85) return "#FF453A";
-	if (percent >= 60) return "#FF9F0A";
-	return MONITOR_GREEN;
+	const t = Math.min(1, Math.max(0, (percent - CALM) / (HOT - CALM)));
+	const hue = Math.round(GREEN_HUE + (RED_HUE - GREEN_HUE) * t);
+	return `hsl(${hue} 90% 56%)`;
 }

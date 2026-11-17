@@ -20,7 +20,9 @@ export function MonitorBubble({ state }: { state: MonitorState }) {
 					strokeDasharray={`${(Math.min(cpu, 100) / 100) * C} ${C}`}
 				/>
 			</svg>
-			<span className="text-[11px] font-bold tabular-nums">{Math.round(cpu)}</span>
+			<span className="text-[11px] font-bold tabular-nums" style={{ color: levelColor(cpu) }}>
+				{Math.round(cpu)}
+			</span>
 			{memory != null && (
 				<i
 					className="absolute right-px bottom-px size-1.75 rounded-full shadow-[0_0_0_2px_var(--island)]"
