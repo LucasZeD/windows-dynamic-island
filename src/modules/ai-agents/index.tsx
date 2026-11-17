@@ -6,6 +6,7 @@ import { SparklesIcon } from "lucide-react";
  *   common/   agent-agnostic types, formatting and UI (cards, session list…)
  *   claude/   Claude Code integration (one `AgentDefinition`)
  *   codex/    OpenAI Codex integration
+ *   cursor/   Cursor (plan usage and tokens from the account)
  *   antigravity/  Google Antigravity (plan quota only)
  *
  * To support another agent, add a folder exporting an `AgentDefinition` and
@@ -23,9 +24,10 @@ import { StatusGlyph } from "./common/components/StatusGlyph";
 import { useNow } from "./common/format";
 import { pickPrimary } from "./common/primary";
 import type { AgentDefinition, AgentSessionRef, AgentStatus } from "./common/types";
+import { cursorAgent } from "./cursor";
 import { agentSettings } from "./settings";
 
-const agents: AgentDefinition[] = [claudeAgent, codexAgent, antigravityAgent];
+const agents: AgentDefinition[] = [claudeAgent, codexAgent, cursorAgent, antigravityAgent];
 
 /** How long a finished turn keeps the island's attention. */
 const DONE_VISIBLE_MS = 8_000;

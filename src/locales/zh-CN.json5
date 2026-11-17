@@ -416,6 +416,48 @@
     },
   },
 
+  cursor: {
+    limit: {
+      total: "总计",
+      auto: "Auto + Composer",
+      api: "API",
+    },
+    cycle: "每月",
+    signedOut: "登录 Cursor 以查看套餐用量。",
+    expired: "Cursor 登录已过期。打开 Cursor 以续期。",
+    network: "无法连接 Cursor，将自动重试。",
+    api: "无法读取 Cursor 的用量数据，将自动重试。",
+    open: "打开 Cursor",
+    integration: {
+      title: "集成",
+      desc: "来自你的 Cursor 账户的套餐用量和 Token，使用 Cursor 保存在本机的登录信息，仅发送到 cursor.com。",
+      found: "已登录（{plan}）",
+      signedOut: "未登录",
+      missing: "未找到 Cursor",
+    },
+  },
+
+  chat: {
+    chatgpt: "ChatGPT",
+    gemini: "Gemini",
+    askChatgpt: "Ask ChatGPT",
+    askGemini: "Ask Gemini",
+    loading: "正在打开 {site}…",
+    failed: "无法打开 {site}。",
+    home: "首页",
+    external: "在浏览器中打开",
+    size: {
+      label: "聊天大小",
+      desc: "ChatGPT 和 Gemini 面板的宽度和高度（两者共用）。灵动岛会保持在屏幕范围内。",
+      tall: "高 480 × 960",
+      wide: "宽 720 × 514",
+      large: "大 760 × 900",
+      custom: "自定义",
+      width: "宽度",
+      height: "高度",
+    },
+  },
+
   antigravity: {
     notRunning: "请打开 Antigravity 并登录，以查看套餐额度。",
     launch: "打开 Antigravity",
