@@ -341,7 +341,13 @@
     },
     notifyCommits: {
       label: "新提交",
-      desc: "有人推送到关注仓库的主分支时显示提示。活跃的仓库推送频繁。",
+      desc: "有人推送到仓库所关注的分支（除非在下方选择，否则为默认分支）时显示提示。活跃的仓库推送频繁。",
+    },
+    branch: {
+      label: "关注提交的分支",
+      default: "默认分支",
+      defaultNamed: "{name}（默认）",
+      loading: "正在加载分支…",
     },
     badge: {
       release: "发布",

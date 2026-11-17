@@ -35,3 +35,10 @@ export const githubRepos: SettingDef<string[]> = {
 	label: "github.repos.title",
 	default: [],
 };
+
+/** The branch each repo follows for commits, when not its default one (`{ "owner/name": "branch" }`). */
+export const githubBranches: SettingDef<Record<string, string>> = {
+	key: "github.branches",
+	label: "github.branch.label",
+	default: {},
+};

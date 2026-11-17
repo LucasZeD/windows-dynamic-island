@@ -241,7 +241,9 @@ function Details({ repo, now }: { repo: GithubRepo; now: number }) {
 				icon={<GitCommitHorizontalIcon size={12} />}
 				text={repo.commit ? repo.commit.title : null}
 				empty="—"
-				when={[repo.commit?.author, ago(repo.commit?.date)].filter(Boolean).join(" · ")}
+				when={[repo.branch ?? info?.defaultBranch, repo.commit?.author, ago(repo.commit?.date)]
+					.filter(Boolean)
+					.join(" · ")}
 				url={repo.commit?.url}
 			/>
 			<Line

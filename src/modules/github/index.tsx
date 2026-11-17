@@ -62,7 +62,10 @@ export const githubModule: IslandModule = {
 								<span className="truncate text-[13px] font-semibold">
 									{update.kind === "release"
 										? t("github.toast.release", { repo: update.repo, tag: update.title })
-										: t("github.toast.commit", { repo: update.repo, title: update.title })}
+										: t("github.toast.commit", {
+												repo: update.branch ? `${update.repo} (${update.branch})` : update.repo,
+												title: update.title,
+											})}
 								</span>
 							</>
 						),

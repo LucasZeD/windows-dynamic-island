@@ -17,6 +17,7 @@ describe("latestUpdate", () => {
 		repo: "o/r",
 		kind,
 		title,
+		branch: null,
 		url: "",
 		seenAt: 0,
 	});

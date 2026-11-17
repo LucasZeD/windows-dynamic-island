@@ -30,6 +30,8 @@ pub const ID: &str = "github";
 
 const TOKEN_TARGET: &str = "dynamic-island:github";
 const REPOS_KEY: &str = "github.repos";
+/// `{ "owner/name": "branch" }`: the branch to follow, when not the default one.
+const BRANCHES_KEY: &str = "github.branches";
 const ENABLED_KEY: &str = "module.github.enabled";
 const POLL_MS: u64 = 5 * 60 * 1000;
 /// Manual refreshes closer than this to the last round are ignored.
@@ -55,6 +57,8 @@ pub enum Auth {
 pub struct RepoState {
     /// `owner/name`, as the user typed it.
     pub name: String,
+    /// The branch followed for commits; `None`: the default branch.
+    pub branch: Option<String>,
     pub open_issues: Option<u64>,
     pub latest: Option<api::Issue>,
     pub error: Option<&'static str>,
@@ -77,6 +81,8 @@ pub struct Update {
     pub kind: &'static str,
     /// The release's tag, or the commit's first line.
     pub title: String,
+    /// The commit's branch, when not the default one.
+    pub branch: Option<String>,
     pub url: String,
     pub seen_at: u64,
 }
@@ -155,7 +161,7 @@ impl Provider for GithubProvider {
                     Err(RecvTimeoutError::Disconnected) => return,
                 };
                 let (enabled, repos) = w.config();
-                let signature = format!("{enabled}|{}", repos.join(","));
+                let signature = format!("{enabled}|{repos:?}");
                 match reason {
                     // Some other setting changed.
                     Some(Wake::Settings) if signature == w.signature => continue,
@@ -194,6 +200,16 @@ impl Provider for GithubProvider {
                 credentials::delete(TOKEN_TARGET)?;
                 self.wake(Wake::Auth);
             }
+            "branches" => {
+                let repo = payload["repo"].as_str().unwrap_or_default().trim();
+                if !valid_repo(repo) {
+                    return Err("invalid repository".into());
+                }
+                let (token, _) = resolve_token();
+                let names =
+                    api::branches(repo, token.as_deref()).map_err(|e| e.code().to_string())?;
+                return Ok(serde_json::json!(names));
+            }
             "open" => {
                 let url = payload["url"].as_str().unwrap_or_default();
                 if !url.starts_with("https://github.com/") {
@@ -217,7 +233,7 @@ struct Worker {
 }
 
 impl Worker {
-    fn config(&self) -> (bool, Vec<String>) {
+    fn config(&self) -> (bool, Vec<(String, Option<String>)>) {
         let settings = self.hub.app().state::<Settings>();
         let enabled = settings
             .get(ENABLED_KEY)
@@ -237,14 +253,26 @@ impl Worker {
             }
         }
         repos.truncate(MAX_REPOS);
-        (enabled, repos)
+        let branches = settings.get(BRANCHES_KEY).unwrap_or_default();
+        let with_branches = repos
+            .into_iter()
+            .map(|name| {
+                let branch = branches[&name]
+                    .as_str()
+                    .map(str::trim)
+                    .filter(|b| valid_branch(b))
+                    .map(str::to_string);
+                (name, branch)
+            })
+            .collect();
+        (enabled, with_branches)
     }
 
     fn publish(&self) {
         self.hub.publish(ID, &self.state);
     }
 
-    fn round(&mut self, repos: &[String]) {
+    fn round(&mut self, repos: &[(String, Option<String>)]) {
         self.last_round = now_ms();
         let (mut token, auth) = resolve_token();
         if auth != self.state.auth {
@@ -276,17 +304,15 @@ impl Worker {
         let mut previous = std::mem::take(&mut self.state.repos);
         self.state.repos = repos
             .iter()
-            .map(|name| {
+            .map(|(name, branch)| {
                 previous
                     .iter()
                     .position(|r| r.name.eq_ignore_ascii_case(name))
                     .map(|i| previous.swap_remove(i))
-                    .map(|r| RepoState {
-                        name: name.clone(),
-                        ..r
-                    })
+                    .map(|r| follow(r, name, branch))
                     .unwrap_or_else(|| RepoState {
                         name: name.clone(),
+                        branch: branch.clone(),
                         ..Default::default()
                     })
             })
@@ -355,7 +381,8 @@ impl Worker {
         let name = self.state.repos[i].name.clone();
         let info = api::repo_info(&name, token)?;
         let release = api::latest_release(&name, token)?;
-        let commit = api::latest_commit(&name, token)?;
+        let branch = self.state.repos[i].branch.clone();
+        let commit = api::latest_commit(&name, branch.as_deref(), token)?;
         let repo = &mut self.state.repos[i];
         let news = news(repo, release.as_ref(), commit.as_ref(), now_ms());
         repo.open_prs = repo
@@ -392,6 +419,7 @@ fn news(
             repo: repo.name.clone(),
             kind: "release",
             title: r.tag.clone(),
+            branch: None,
             url: r.url.clone(),
             seen_at: now,
         });
@@ -403,11 +431,38 @@ fn news(
             repo: repo.name.clone(),
             kind: "commit",
             title: c.title.clone(),
+            branch: repo.branch.clone(),
             url: c.url.clone(),
             seen_at: now,
         });
     }
     out
+}
+
+/// What's known about a repo, now following `branch`. On another branch the
+/// last commit no longer counts: it's read again, and isn't news.
+fn follow(known: RepoState, name: &str, branch: &Option<String>) -> RepoState {
+    let mut repo = RepoState {
+        name: name.to_string(),
+        ..known
+    };
+    if repo.branch != *branch {
+        repo.branch = branch.clone();
+        repo.commit = None;
+        repo.details_at = 0;
+    }
+    repo
+}
+
+/// A branch name git and GitHub would accept (no spaces, `..` or control characters).
+fn valid_branch(b: &str) -> bool {
+    !b.is_empty()
+        && b.len() <= 255
+        && !b.contains("..")
+        && !b.starts_with('/')
+        && !b.ends_with('/')
+        && b.chars()
+            .all(|c| c.is_ascii_alphanumeric() || "-_./+".contains(c))
 }
 
 /// `owner/name` with GitHub's allowed characters.
@@ -479,6 +534,26 @@ mod tests {
             details_at: 1,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn switching_branch_forgets_the_last_commit_without_news() {
+        let repo = follow(known(Some("v1"), "aaa"), "o/r", &Some("dev".into()));
+        assert_eq!(repo.branch.as_deref(), Some("dev"));
+        assert!(repo.commit.is_none());
+        assert!(news(&repo, Some(&release("v2")), Some(&commit("bbb")), 5).is_empty());
+        // Same branch: kept as is.
+        let same = follow(known(Some("v1"), "aaa"), "o/r", &None);
+        assert!(same.commit.is_some());
+    }
+
+    #[test]
+    fn branch_names_are_checked() {
+        assert!(valid_branch("main"));
+        assert!(valid_branch("release/1.2"));
+        assert!(!valid_branch(""));
+        assert!(!valid_branch("a b"));
+        assert!(!valid_branch("../x"));
     }
 
     #[test]
