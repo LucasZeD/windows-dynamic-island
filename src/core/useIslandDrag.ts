@@ -13,6 +13,8 @@ const RUBBER = 0.22;
 const CENTER_SNAP = 28;
 /** Seconds of release velocity added to where the island lands. */
 const FLING = 0.1;
+/** Room kept between the resting island and the caption buttons it steps away from. */
+const AVOID_GAP = 10;
 
 /** Island position along the top edge: a bit of lag behind the pointer, bouncy on return. */
 const follow = { stiffness: 480, damping: 30, mass: 0.85 };
@@ -20,6 +22,28 @@ const follow = { stiffness: 480, damping: 30, mass: 0.85 };
 const wobble = { stiffness: 520, damping: 16, mass: 0.6 };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+/**
+ * How far to shift a resting island so it clears `[a, b]` (the caption buttons
+ * of the window in front, in window px). The island spans `[left, right]` at
+ * offset `x`; the shift keeps the result within `[min, max]` and prefers the
+ * shorter way. 0 when there's no overlap or no room either way.
+ */
+export function dodge(
+	x: number,
+	left: number,
+	right: number,
+	[a, b]: [number, number],
+	min: number,
+	max: number,
+): number {
+	if (right <= a - AVOID_GAP || left >= b + AVOID_GAP) return 0;
+	const toRight = b + AVOID_GAP - left;
+	const toLeft = a - AVOID_GAP - right;
+	const fits = (shift: number) => x + shift >= min - 0.5 && x + shift <= max + 0.5;
+	const ways = [toRight, toLeft].filter(fits).sort((p, q) => Math.abs(p) - Math.abs(q));
+	return ways[0] ?? 0;
+}
 const rubber = (v: number, min: number, max: number) =>
 	v > max ? max + (v - max) * RUBBER : v < min ? min + (v - min) * RUBBER : v;
 
@@ -59,6 +83,11 @@ export function useIslandDrag({ width, leftExtra, rightExtra, canReturn, onDragC
 	right.set(rightExtra);
 	// 1 while dragging / gliding (deforms and allows rubber-banding), 0 at rest.
 	const moving = useMotionValue(0);
+	// Steps the resting island aside from the caption buttons of the window in front.
+	const shiftTarget = useMotionValue(0);
+	const shift = useSpring(shiftTarget, follow);
+	const [avoid, setAvoid] = useState<[number, number] | null>(null);
+	useTauriEvent<[number, number] | null>("island://avoid", setAvoid);
 
 	useEffect(() => {
 		const onResize = () => stageWidth.set(window.innerWidth);
@@ -76,7 +105,7 @@ export function useIslandDrag({ width, leftExtra, rightExtra, canReturn, onDragC
 
 	const offset = useTransform(() => {
 		const { min, max } = limits(liveWidth.get());
-		return moving.get() ? rubber(x.get(), min, max) : clamp(x.get(), min, max);
+		return moving.get() ? rubber(x.get(), min, max) : clamp(x.get() + shift.get(), min, max);
 	});
 
 	// --- squash & stretch ------------------------------------------------------
@@ -128,6 +157,21 @@ export function useIslandDrag({ width, leftExtra, rightExtra, canReturn, onDragC
 		const id = window.setTimeout(recenter, Math.max(0, returnDelay) * 1000);
 		return () => window.clearTimeout(id);
 	}, [returnToCenter, returnDelay, parked, isDragging, canReturn, recenter]);
+
+	// Room for the caption buttons below: only at rest, never while dragged or open.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `stored` is the island's spot (read through the `target` motion value, which doesn't re-render)
+	useEffect(() => {
+		if (!avoid || !canReturn || isDragging) {
+			shiftTarget.set(0);
+			return;
+		}
+		const { min, max } = limits(width);
+		const at = clamp(target.get(), min, max);
+		const center = stageWidth.get() / 2 + at;
+		const left = center - width / 2 - leftExtra;
+		const right = center + width / 2 + rightExtra;
+		shiftTarget.set(dodge(at, left, right, avoid, min, max));
+	}, [avoid, canReturn, isDragging, width, leftExtra, rightExtra, stored, limits, shiftTarget, stageWidth, target]);
 
 	// Staying put: restore the saved spot (on launch, or changed by another window).
 	useEffect(() => {
