@@ -21,10 +21,11 @@ pub const FULLSCREEN_EVENT: &str = "island://fullscreen";
 pub const PRESS_OUTSIDE_EVENT: &str = "island://press-outside";
 /// Tray "Recenter": the frontend snaps the island back to the middle.
 pub const RECENTER_EVENT: &str = "island://recenter";
-
-/// Strip height in logical pixels: the tallest island (`MAX_HEIGHT` in the
-/// frontend's `geometry.ts`) plus its shadow and spring overshoot. Outside the
-/// hit rects the strip lets clicks through, so the spare room costs nothing.
+/// Shortest the strip gets, in logical pixels: the frontend's `MAX_HEIGHT`
+/// plus room for the island's shadow and spring overshoot. On most screens it
+/// is taller (see `display::strip_height`), so tall panels (the chats) fit.
+/// Outside the hit rects the strip lets clicks through, so the spare room
+/// costs nothing.
 pub const STRIP_HEIGHT: f64 = 640.0;
 
 /// The last window in front that wasn't one of ours: what "ask about the
@@ -230,6 +231,7 @@ pub fn spawn_hit_test(app: AppHandle) {
 
             let dragging = app.state::<DragState>().0.load(Ordering::Relaxed);
             let over_island = cursor_inside(&app, &win, 0.0);
+            cache_screen_rects(&app, &win);
             let inside = island_interactive && (dragging || over_island);
 
             // A drag that started in another app (files from Explorer…). The
@@ -266,6 +268,41 @@ pub fn spawn_hit_test(app: AppHandle) {
             }
         }
     });
+}
+
+/// The frontend's rects in physical screen pixels, as of the last hit-test
+/// tick: for code that mustn't wait on the window's thread (a mouse hook).
+static SCREEN_RECTS: Mutex<Vec<[f64; 4]>> = Mutex::new(Vec::new());
+
+fn cache_screen_rects(app: &AppHandle, win: &WebviewWindow) {
+    let (Ok(origin), Ok(scale)) = (win.outer_position(), win.scale_factor()) else {
+        return;
+    };
+    let rects = app.state::<HitState>();
+    let screen = rects
+        .0
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|r| {
+            [
+                origin.x as f64 + r.x * scale,
+                origin.y as f64 + r.y * scale,
+                origin.x as f64 + (r.x + r.width) * scale,
+                origin.y as f64 + (r.y + r.height) * scale,
+            ]
+        })
+        .collect();
+    *SCREEN_RECTS.lock().unwrap() = screen;
+}
+
+/// A point in physical screen pixels is over the island (cached, never blocks).
+pub fn on_island(x: f64, y: f64) -> bool {
+    SCREEN_RECTS
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|[l, t, r, b]| x >= *l && x <= *r && y >= *t && y <= *b)
 }
 
 /// Extra room (CSS px) around the island that accepts files dragged in.
@@ -360,6 +397,7 @@ fn ensure_topmost(win: &WebviewWindow, force: bool) {
         );
     }
     crate::glass::restack();
+    crate::providers::chat::restack();
 }
 
 #[cfg(not(windows))]

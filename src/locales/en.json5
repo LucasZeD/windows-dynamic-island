@@ -444,6 +444,29 @@
     },
   },
 
+  // ChatGPT and Gemini modules: the sites inside the island (src-tauri/src/providers/chat.rs)
+  chat: {
+    chatgpt: "ChatGPT",
+    gemini: "Gemini",
+    askChatgpt: "Ask ChatGPT",
+    askGemini: "Ask Gemini",
+    // {site}: ChatGPT, Gemini
+    loading: "Opening {site}…",
+    failed: "Couldn't open {site}.",
+    home: "Start page",
+    external: "Open in browser",
+    size: {
+      label: "Chat size",
+      desc: "Width and height of the ChatGPT and Gemini panel (both share it). The island keeps it within the screen.",
+      tall: "Tall 480 × 960",
+      wide: "Wide 720 × 514",
+      large: "Large 760 × 900",
+      custom: "Custom",
+      width: "Width",
+      height: "Height",
+    },
+  },
+
   antigravity: {
     notRunning: "Open Antigravity and sign in to see its plan quota.",
     launch: "Open Antigravity",

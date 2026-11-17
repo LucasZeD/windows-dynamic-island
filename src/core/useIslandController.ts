@@ -25,6 +25,13 @@ const WHEEL_STEP_MS = 260;
 /** Pseudo tab: the grid with every module. */
 export const LAUNCHER = "launcher";
 
+/**
+ * The "Ask" chats (Claude, ChatGPT, Gemini): one switch at the right end of
+ * the tab bar, apart from the tools on the left.
+ */
+export const ASK_TABS = ["ask", "chatgpt", "gemini"];
+const isAsk = (e: ModuleEntry) => ASK_TABS.includes(e.module.id);
+
 export type IslandController = ReturnType<typeof useIslandController>;
 
 /**
@@ -225,12 +232,15 @@ function islandMode(s: {
 function tabBar(entries: ModuleEntry[], settings: Settings, focusedId: string | null) {
 	const pinned = readSetting(settings, layoutSettings.pinned);
 	const pinnedAlways = readSetting(settings, layoutSettings.pinnedAlways);
-	return entries.filter(
+	const shown = entries.filter(
 		(e) =>
 			pinnedAlways.includes(e.module.id) ||
 			(!e.view.hidden && (pinned.includes(e.module.id) || e.view.active)) ||
 			e.module.id === focusedId,
 	);
+	// The Ask switch sits last, in its own order.
+	const asks = ASK_TABS.flatMap((id) => shown.filter((e) => e.module.id === id));
+	return [...shown.filter((e) => !isAsk(e)), ...asks];
 }
 
 /** Mouse wheel over the open island flips through the tabs. */

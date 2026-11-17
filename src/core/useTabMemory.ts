@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from "react";
 
 /** The island reopens on the last tab used if it closed less than this ago. */
 const REMEMBER_TAB_MS = 5 * 60_000;
+/** Tabs the island reopens on however long ago it closed (the chats: hover, ask, done). */
+const STICKY_TABS = new Set(["chatgpt", "gemini"]);
 
 /**
  * The tab the user is on (`null`: the default, the busiest module). It
@@ -14,6 +16,8 @@ export function useTabMemory(attentionId: string | null) {
 	const rememberUntil = useRef(0);
 	const attention = useRef(attentionId);
 	attention.current = attentionId;
+	const current = useRef(tab);
+	current.current = tab;
 
 	/** A tab asked for explicitly (a click, a shortcut): it stays while open. */
 	const openOn = useCallback((id: string) => {
@@ -27,7 +31,8 @@ export function useTabMemory(attentionId: string | null) {
 	}, []);
 
 	const onIslandClose = useCallback(() => {
-		rememberUntil.current = Date.now() + REMEMBER_TAB_MS;
+		const sticky = current.current !== null && STICKY_TABS.has(current.current);
+		rememberUntil.current = sticky ? Number.MAX_SAFE_INTEGER : Date.now() + REMEMBER_TAB_MS;
 	}, []);
 
 	return { tab, setTab, openOn, onIslandOpen, onIslandClose };

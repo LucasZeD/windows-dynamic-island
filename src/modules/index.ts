@@ -2,6 +2,7 @@ import type { IslandModule } from "../core/types";
 import { activitiesModule } from "./activities";
 import { aiAgentsModule } from "./ai-agents";
 import { askModule } from "./ask";
+import { chatgptModule, geminiModule } from "./chat";
 import { clipboardModule } from "./clipboard";
 import { clockModule } from "./clock";
 import { findModule } from "./find";
@@ -25,6 +26,8 @@ export const modules: IslandModule[] = [
 	musicModule,
 	aiAgentsModule,
 	askModule,
+	chatgptModule,
+	geminiModule,
 	findModule,
 	notificationsModule,
 	activitiesModule,
