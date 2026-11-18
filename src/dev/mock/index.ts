@@ -11,6 +11,7 @@ import { ask } from "./ask";
 import { calendarMock } from "./calendar";
 import { clipboard } from "./clipboard";
 import { startDemo } from "./demo";
+import { docker } from "./docker";
 import { github } from "./github";
 import { logCall, type Mock } from "./kit";
 import { monitor } from "./monitor";
@@ -35,6 +36,7 @@ export const mocks: Mock[] = [
 	shelf,
 	notes,
 	github,
+	docker,
 	calendarMock,
 	monitor,
 	pluginsMock,

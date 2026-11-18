@@ -935,6 +935,127 @@
     },
   },
 
+  // Docker module: containers of the current Docker context, Compose projects, Kubernetes pods
+  // (src-tauri/src/providers/docker/)
+  docker: {
+    title: "Docker",
+    refresh: "Refresh",
+    containers: "Containers",
+    kubernetes: "Kubernetes",
+    // {up}: running containers, {total}: all of them
+    summary: "{up} of {total} running",
+    loading: "Asking Docker…",
+    missing: "Docker isn't installed",
+    missingHint: "Install Docker Desktop (or the docker CLI) and it shows up here.",
+    down: "Docker isn't running",
+    empty: "No containers",
+    noneRunning: "Nothing running",
+    noneRunningHint: "Stopped containers are hidden (module settings).",
+    // Containers that aren't part of a Compose project
+    standalone: "Standalone",
+    // {time}: "3 h", "12 min"
+    up: "Up {time}",
+    healthState: {
+      healthy: "healthy",
+      unhealthy: "unhealthy",
+      starting: "health check starting",
+    },
+    // {code}: exit code
+    exited: "Exited ({code})",
+    oom: "out of memory",
+    // {n}: restarts so far
+    restarting: "Restarting ({n})",
+    paused: "Paused",
+    createdState: "Created, never started",
+    start: "Start",
+    stop: "Stop",
+    restart: "Restart",
+    pause: "Pause",
+    unpause: "Resume",
+    tab: {
+      overview: "Overview",
+      image: "Image & build",
+      volumes: "Volumes",
+      network: "Network",
+      kube: "Kubernetes",
+      logs: "Logs",
+    },
+    usage: "Usage",
+    memory: "Memory",
+    net: "Network I/O",
+    disk: "Disk I/O",
+    container: "Container",
+    image: "Image",
+    command: "Command",
+    ports: "Ports",
+    created: "Created",
+    restartPolicy: "Restart policy",
+    // {n}: a number
+    restarts: "{n} restarts",
+    exitCode: "Exit code",
+    error: "Error",
+    healthCheck: "Health check",
+    status: "Status",
+    // {n}: failed checks in a row
+    failing: "{n} failed in a row",
+    lastCheck: "Last check",
+    compose: "Compose project",
+    project: "Project",
+    service: "Service",
+    folder: "Folder",
+    files: "Files",
+    labels: "Labels",
+    noImage: "The image is gone (removed or retagged).",
+    tags: "Tags",
+    built: "Built",
+    size: "Size",
+    // {n}: a number
+    layers: "{n} layers",
+    platform: "Platform",
+    digest: "Digest",
+    build: "Build steps",
+    noBuild: "No build history",
+    noMounts: "No volumes or mounts",
+    readOnly: "read-only",
+    readWrite: "read-write",
+    noPorts: "No ports published",
+    gateway: "Gateway",
+    aliases: "Aliases",
+    hostname: "Hostname",
+    pod: "Pod",
+    namespace: "Namespace",
+    noLogs: "No logs yet",
+    compact: {
+      restarting: "restarting",
+      unhealthy: "unhealthy",
+    },
+    toast: {
+      // {name}: the container, {code}: its exit code
+      crashed: "{name} crashed (exit {code})",
+      oom: "{name} ran out of memory",
+      unhealthy: "{name} is unhealthy",
+    },
+    kube: {
+      loading: "Asking the cluster…",
+      missing: "kubectl isn't installed",
+      noContext: "No Kubernetes cluster selected",
+      noContextHint: "Turn on Kubernetes in Docker Desktop, or pick a context with kubectl config use-context.",
+      unreachable: "The cluster doesn't answer",
+      empty: "No pods",
+      // {name}: kubectl context
+      context: "Context: {name}",
+      node: "Node",
+    },
+    notifyCrashes: {
+      label: "Crash alerts",
+      desc: "A toast when a container crashes, runs out of memory or turns unhealthy.",
+    },
+    showStopped: {
+      label: "Show stopped containers",
+      desc: "Keeps stopped containers in the list. Crashed ones are always shown.",
+    },
+  },
+
   // Peripherals module: battery of wireless mice, keyboards, headsets and controllers,
   // read by Halo Battery's device code (src-tauri/src/providers/peripherals.rs)
   peripherals: {

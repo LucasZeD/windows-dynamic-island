@@ -19,6 +19,7 @@ pub mod codex;
 pub mod chat;
 pub mod credentials;
 pub mod cursor;
+pub mod docker;
 pub mod find;
 pub mod github;
 pub mod monitor;
@@ -70,6 +71,7 @@ pub fn registry() -> Vec<Arc<dyn Provider>> {
         Arc::new(github::GithubProvider::default()),
         Arc::new(monitor::MonitorProvider::default()),
         Arc::new(peripherals::PeripheralsProvider::default()),
+        Arc::new(docker::DockerProvider::default()),
         Arc::new(calendar::CalendarProvider::default()),
         Arc::new(shortcuts::ShortcutsProvider::default()),
     ]
