@@ -68,8 +68,26 @@ pub fn focus_island(app: AppHandle) -> Result<(), String> {
     let win = app
         .get_webview_window(ISLAND_LABEL)
         .ok_or("no island window")?;
+    if is_foreground(&win) {
+        return Ok(());
+    }
     allow_activation();
     win.set_focus().map_err(|e| e.to_string())
+}
+
+/// Whether Windows sends the keyboard to the island. The webview's own focus
+/// (`document.hasFocus()`) can't tell: the window never activates on a click,
+/// so the page may think it has the keyboard while another app gets the keys.
+#[cfg(windows)]
+fn is_foreground(win: &WebviewWindow) -> bool {
+    use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+    let fg = unsafe { GetForegroundWindow() };
+    win.hwnd().is_ok_and(|h| h.0 == fg.0)
+}
+
+#[cfg(not(windows))]
+fn is_foreground(_: &WebviewWindow) -> bool {
+    false
 }
 
 /// Until when (`GetTickCount64`, ms) the island may become the active window.
