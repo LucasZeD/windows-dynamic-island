@@ -160,7 +160,12 @@ export function NotesPanel({ state }: { state: NotesState | undefined }) {
 	}
 
 	/** The island window must have the keyboard for typing to reach the note. */
+	/** Typing keeps the island open wherever the pointer goes; a click outside still closes it. */
+	const hold = () => island.keepOpen(true, "notes", { endsOnPressOutside: true });
+
 	function takeKeyboard() {
+		// A click back in after one outside: the editor may still have the focus, so no focus event.
+		hold();
 		if (!document.hasFocus()) command("focus_island");
 	}
 
@@ -180,7 +185,7 @@ export function NotesPanel({ state }: { state: NotesState | undefined }) {
 		<div
 			className="relative flex h-full min-h-0 gap-2"
 			onMouseDown={takeKeyboard}
-			onFocus={() => island.keepOpen(true, "notes")}
+			onFocus={hold}
 			onBlur={(e) => {
 				if (!e.currentTarget.contains(e.relatedTarget as Node | null)) island.keepOpen(false, "notes");
 			}}

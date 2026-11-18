@@ -4,6 +4,7 @@
  */
 import { createContext, useContext, useSyncExternalStore } from "react";
 import type { IslandMode } from "./types";
+import type { HoldOptions } from "./useIslandHover";
 
 export interface IslandApi {
 	mode: IslandMode;
@@ -16,8 +17,9 @@ export interface IslandApi {
 	/**
 	 * Stay open wherever the pointer goes (e.g. while typing a question). Each
 	 * `reason` is held separately; the island may close once all are released.
+	 * With `endsOnPressOutside`, a click outside the island releases it too.
 	 */
-	keepOpen: (on: boolean, reason?: string) => void;
+	keepOpen: (on: boolean, reason?: string, options?: HoldOptions) => void;
 }
 
 export const IslandContext = createContext<IslandApi>({
