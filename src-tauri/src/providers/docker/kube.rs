@@ -39,6 +39,9 @@ pub struct Pod {
     pub created_at: u64,
     /// `Deployment/api`, through its ReplicaSet when there is one.
     pub owner: Option<String>,
+    /// Why the whole pod is stuck or gone (`Unschedulable`, `Evicted`), and what Kubernetes says about it.
+    pub reason: Option<String>,
+    pub message: Option<String>,
     pub containers: Vec<PodContainer>,
 }
 
@@ -58,6 +61,22 @@ fn s(v: &Value, key: &str) -> Option<String> {
         .and_then(Value::as_str)
         .filter(|s| !s.is_empty())
         .map(String::from)
+}
+
+/// The pod's own trouble: `status.reason` (Evicted), or a condition that
+/// failed with a reason (PodScheduled: Unschedulable).
+fn trouble(status: &Value) -> (Option<String>, Option<String>) {
+    if let Some(reason) = s(status, "reason") {
+        return (Some(reason), s(status, "message"));
+    }
+    status["conditions"]
+        .as_array()
+        .and_then(|c| {
+            c.iter()
+                .find(|c| c["status"].as_str() == Some("False") && s(c, "reason").is_some())
+        })
+        .map(|c| (s(c, "reason"), s(c, "message")))
+        .unwrap_or_default()
 }
 
 fn owner(meta: &Value) -> Option<String> {
@@ -106,7 +125,10 @@ pub fn pod(v: &Value) -> Option<Pod> {
             })
         })
         .collect();
+    let (reason, message) = trouble(status);
     Some(Pod {
+        reason,
+        message,
         namespace: s(meta, "namespace").unwrap_or_else(|| "default".into()),
         name: s(meta, "name")?,
         phase: s(status, "phase").unwrap_or_else(|| "Unknown".into()),
@@ -229,6 +251,29 @@ mod tests {
         assert_eq!(p.namespace, "default");
         assert_eq!(p.owner.as_deref(), Some("Job/job"));
         assert_eq!(p.containers[0].state, "waiting");
+        assert_eq!(p.reason, None);
+    }
+
+    #[test]
+    fn a_pod_that_cant_be_scheduled_says_why() {
+        let v = json!({
+            "metadata": {"name": "too-big", "namespace": "batch"},
+            "spec": {"containers": [{"name": "c", "image": "alpine"}]},
+            "status": {"phase": "Pending", "conditions": [
+                {"type": "Initialized", "status": "True"},
+                {"type": "PodScheduled", "status": "False", "reason": "Unschedulable",
+                 "message": "0/1 nodes are available: 1 Insufficient memory."}
+            ]}
+        });
+        let p = pod(&v).unwrap();
+        assert_eq!(p.reason.as_deref(), Some("Unschedulable"));
+        assert!(p.message.unwrap().contains("Insufficient memory"));
+
+        let evicted = json!({
+            "metadata": {"name": "e"}, "spec": {"containers": []},
+            "status": {"phase": "Failed", "reason": "Evicted", "message": "low on memory"}
+        });
+        assert_eq!(pod(&evicted).unwrap().reason.as_deref(), Some("Evicted"));
     }
 
     #[test]

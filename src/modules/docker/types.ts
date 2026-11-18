@@ -131,6 +131,9 @@ export interface Pod {
 	ip: string | null;
 	createdAt: number;
 	owner: string | null;
+	/** Why the whole pod is stuck or gone (Unschedulable, Evicted), and Kubernetes' explanation. */
+	reason: string | null;
+	message: string | null;
 	containers: PodContainer[];
 }
 
