@@ -47,6 +47,35 @@ function UpdateRow() {
 	);
 }
 
+/** The commit the app was built from, so a build can be matched to the code. */
+function BuildRow() {
+	const t = useT();
+	const [copied, setCopied] = useState(false);
+	const { commit, branch, dirty, date } = __APP_BUILD__;
+	const built = new Date(date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+	const desc = commit
+		? [
+				t("settings.about.build.desc", { commit, branch: branch ?? "?", date: built }),
+				dirty && t("settings.about.build.dirty"),
+			]
+				.filter(Boolean)
+				.join(", ")
+		: t("settings.about.build.unknown");
+	const copy = () => {
+		const text = `${__APP_VERSION__} ${commit ?? "unknown"}${dirty ? "-dirty" : ""} (${branch ?? "?"}) ${date}`;
+		navigator.clipboard.writeText(text).then(() => {
+			setCopied(true);
+			window.setTimeout(() => setCopied(false), 1500);
+		});
+	};
+
+	return (
+		<Row label={t("settings.about.build.label")} desc={desc}>
+			<Button onClick={copy}>{t(copied ? "settings.about.build.copied" : "settings.about.build.copy")}</Button>
+		</Row>
+	);
+}
+
 export function AboutPage() {
 	const t = useT();
 	const openRepo = () => (isTauri ? command("open_repo") : window.open(REPO_URL, "_blank"));
@@ -67,6 +96,7 @@ export function AboutPage() {
 						GitHub
 					</Button>
 				</Row>
+				<BuildRow />
 				<UpdateRow />
 				<Row label={t("settings.about.license")} desc="GNU GPL v3.0"></Row>
 			</Card>

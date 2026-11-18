@@ -69,6 +69,14 @@
       version: "版本 {version}",
       source: "源代码",
       license: "开源许可",
+      build: {
+        label: "构建",
+        desc: "{commit}（{branch} 分支），构建于 {date}",
+        dirty: "含未提交的更改",
+        unknown: "并非从 git 检出构建",
+        copy: "复制",
+        copied: "已复制",
+      },
       updates: {
         label: "检查更新",
         idle: "检查是否有新版本发布。",
