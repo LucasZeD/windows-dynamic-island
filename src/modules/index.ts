@@ -5,6 +5,7 @@ import { askModule } from "./ask";
 import { chatgptModule, geminiModule } from "./chat";
 import { clipboardModule } from "./clipboard";
 import { clockModule } from "./clock";
+import { dockerModule } from "./docker";
 import { findModule } from "./find";
 import { githubModule } from "./github";
 import { hydrationModule } from "./hydration";
@@ -36,6 +37,7 @@ export const modules: IslandModule[] = [
 	shelfModule,
 	clipboardModule,
 	githubModule,
+	dockerModule,
 	hydrationModule,
 	peripheralsModule,
 	monitorModule,
