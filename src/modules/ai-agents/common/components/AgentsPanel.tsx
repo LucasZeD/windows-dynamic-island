@@ -1,7 +1,8 @@
-import { useState } from "react";
 import { SectionLabel } from "../../../../components/ui/text";
 import { cn } from "../../../../core/cn";
 import { useT } from "../../../../core/i18n";
+import { setSetting, useSetting } from "../../../../core/settings";
+import { agentLastTab } from "../../settings";
 import { useNow } from "../format";
 import type { AgentDefinition, AgentSessionRef, AgentSnapshot } from "../types";
 import { AgentCard } from "./AgentCard";
@@ -23,8 +24,8 @@ export function AgentsPanel({
 	const now = useNow(busy ? 1000 : 30_000);
 	const t = useT();
 	const asking = sessions.filter((s) => s.session.permission && s.agent.decide);
-	// Picked tab, else the agent of the busiest session.
-	const [picked, setPicked] = useState<string | null>(null);
+	// The tab opened last (kept across restarts), else the agent of the busiest session.
+	const picked = useSetting(agentLastTab);
 	const index = Math.max(
 		0,
 		agents.findIndex((a) => a.id === (picked ?? sessions[0]?.agent.id)),
@@ -64,7 +65,7 @@ export function AgentsPanel({
 							style={{ "--agent": a.color } as React.CSSProperties}
 							onClick={(e) => {
 								e.stopPropagation();
-								setPicked(a.id);
+								setSetting(agentLastTab, a.id);
 							}}
 						>
 							<a.Icon size={14} />

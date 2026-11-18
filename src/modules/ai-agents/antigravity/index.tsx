@@ -12,6 +12,14 @@ export const antigravityAgent: AgentDefinition = {
 	name: "Antigravity",
 	color: "#388BFD",
 	Icon: AntigravityIcon,
+	// Floating, as the name says.
+	working: {
+		animate: { y: [0, -3, 0], rotate: [-6, 6, -6] },
+		transition: {
+			y: { duration: 1.4, repeat: Infinity, ease: "easeInOut" },
+			rotate: { duration: 2.8, repeat: Infinity, ease: "easeInOut" },
+		},
+	},
 	useAgent: useAntigravity,
 	SettingsSection: AntigravitySettings,
 };
