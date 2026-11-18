@@ -78,4 +78,24 @@ describe("live preview", () => {
 test("note links resolve from the note's folder", () => {
 	expect(resolveNoteLink("a/b/n.md", "../Other%20note.md#part")).toBe("a/Other note.md");
 	expect(resolveNoteLink("n.md", "sub/x.md")).toBe("sub/x.md");
+	expect(resolveNoteLink("a/n.md", "./x.md")).toBe("a/x.md");
+	// A leading slash starts at the notes folder.
+	expect(resolveNoteLink("a/b/n.md", "/top.md")).toBe("top.md");
+	// Climbing past the top stays at the top.
+	expect(resolveNoteLink("n.md", "../../x.md")).toBe("x.md");
+});
+
+describe("more live preview", () => {
+	test("deeper headings and plain text", () => {
+		expect(drawn("### Small")).toEqual(["line:cm-md-h3", "hide:### "]);
+		expect(drawn("just words")).toEqual([]);
+	});
+
+	test("open tasks are checkboxes without the done mark", () => {
+		expect(drawn("- [ ] todo")).toEqual(["hide:- ", "widget:CheckboxWidget:[ ]"]);
+	});
+
+	test("addresses inside code aren't links", () => {
+		expect(drawn("`https://x.dev`").some((x) => x.includes("cm-md-link"))).toBe(false);
+	});
 });
