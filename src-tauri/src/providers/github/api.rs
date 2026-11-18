@@ -1,5 +1,19 @@
 //! Minimal GitHub REST client (blocking, via ureq).
+//!
+//! GitHub's rate limits (docs.github.com, "Rate limits for the REST API"):
+//! - Primary: 60 requests an hour per IP signed out, 5,000 an hour signed in
+//!   ("core"); the search API has its own bucket, 10 a minute signed out and
+//!   30 signed in. Every answer says what's left (`x-ratelimit-*`), and
+//!   `GET /rate_limit` reports it for free. A bucket known to be empty isn't
+//!   called again until it resets.
+//! - Secondary: 403 / 429 without those numbers. Wait `retry-after` when
+//!   given, else at least a minute, longer each time it happens again.
+//! - Conditional requests: a `304 Not Modified` to a signed-in request costs
+//!   nothing, so answers are kept with their ETag and asked for again with it.
 
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
 use serde::Serialize;
@@ -8,6 +22,123 @@ use serde_json::Value;
 use super::super::now_ms;
 
 const API: &str = "https://api.github.com";
+/// Answers kept for conditional requests; the cache starts over past this.
+const MAX_CACHED: usize = 256;
+/// A secondary limit's wait when GitHub doesn't say, doubled each time in a row.
+const SECONDARY_WAIT_MS: u64 = 60_000;
+const MAX_SECONDARY_DOUBLINGS: u32 = 5;
+
+/// GitHub's separate rate-limit buckets this client uses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Resource {
+    Core,
+    Search,
+}
+
+impl Resource {
+    fn of_path(path: &str) -> Self {
+        if path.starts_with("/search/") {
+            Resource::Search
+        } else {
+            Resource::Core
+        }
+    }
+
+    fn named(name: &str) -> Option<Self> {
+        match name {
+            "core" => Some(Resource::Core),
+            "search" => Some(Resource::Search),
+            _ => None,
+        }
+    }
+}
+
+/// What's left of a bucket until it resets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Budget {
+    pub remaining: u64,
+    /// Unix time in ms.
+    pub reset_ms: u64,
+}
+
+static BUDGETS: Mutex<Option<HashMap<Resource, Budget>>> = Mutex::new(None);
+/// Secondary limits hit in a row (reset by any answer that isn't one).
+static STRIKES: AtomicU32 = AtomicU32::new(0);
+/// `url → (etag, body)` for conditional requests.
+static CACHE: Mutex<Option<HashMap<String, (String, Value)>>> = Mutex::new(None);
+
+fn set_budget(resource: Resource, budget: Budget) {
+    BUDGETS
+        .lock()
+        .unwrap()
+        .get_or_insert_with(HashMap::new)
+        .insert(resource, budget);
+}
+
+/// The bucket's budget, while it hasn't reset yet.
+pub fn budget(resource: Resource) -> Option<Budget> {
+    let budget = *BUDGETS.lock().unwrap().as_ref()?.get(&resource)?;
+    (budget.reset_ms > now_ms()).then_some(budget)
+}
+
+/// Whether `calls` more requests fit in the bucket (unknown: they do).
+pub fn affordable(resource: Resource, calls: u64) -> bool {
+    budget(resource).is_none_or(|b| b.remaining >= calls)
+}
+
+/// How long a secondary limit is waited out after `strikes` in a row.
+fn secondary_wait(strikes: u32) -> u64 {
+    SECONDARY_WAIT_MS << strikes.min(MAX_SECONDARY_DOUBLINGS)
+}
+
+/// Until when a 403 / 429 answer means to stop (unix ms), or `None` when it
+/// isn't a rate limit (a 403 for missing permissions).
+fn limited_until(
+    status: u16,
+    retry_after: Option<u64>,
+    remaining: Option<u64>,
+    reset: Option<u64>,
+    says_rate_limit: bool,
+    now: u64,
+    strikes: u32,
+) -> Option<u64> {
+    if let Some(secs) = retry_after {
+        return Some(now + secs * 1000);
+    }
+    if remaining == Some(0)
+        && let Some(reset) = reset
+    {
+        return Some((reset * 1000).max(now + 1000));
+    }
+    (status == 429 || says_rate_limit).then(|| now + secondary_wait(strikes))
+}
+
+/// Reads `GET /rate_limit` (which doesn't count against any limit).
+pub fn rate_limit(token: Option<&str>) -> Result<(), Error> {
+    let v = request("/rate_limit", &[], token, false)?;
+    for (resource, budget) in parse_rate_limit(&v) {
+        set_budget(resource, budget);
+    }
+    Ok(())
+}
+
+fn parse_rate_limit(v: &Value) -> Vec<(Resource, Budget)> {
+    let Some(resources) = v["resources"].as_object() else {
+        return Vec::new();
+    };
+    resources
+        .iter()
+        .filter_map(|(name, r)| {
+            Some((
+                Resource::named(name)?,
+                Budget {
+                    remaining: r["remaining"].as_u64()?,
+                    reset_ms: r["reset"].as_u64()? * 1000,
+                },
+            ))
+        })
+        .collect()
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,6 +190,22 @@ fn agent() -> ureq::Agent {
 }
 
 fn get(path: &str, query: &[(&str, &str)], token: Option<&str>) -> Result<Value, Error> {
+    // A bucket known to be empty isn't asked again before it resets.
+    let resource = Resource::of_path(path);
+    if let Some(b) = budget(resource)
+        && b.remaining == 0
+    {
+        return Err(Error::RateLimited(b.reset_ms));
+    }
+    request(path, query, token, true)
+}
+
+fn request(
+    path: &str,
+    query: &[(&str, &str)],
+    token: Option<&str>,
+    conditional: bool,
+) -> Result<Value, Error> {
     let mut req = agent()
         .get(format!("{API}{path}"))
         .header("Accept", "application/vnd.github+json")
@@ -70,39 +217,87 @@ fn get(path: &str, query: &[(&str, &str)], token: Option<&str>) -> Result<Value,
     if let Some(token) = token {
         req = req.header("Authorization", &format!("Bearer {token}"));
     }
+    // Signed in and signed out can see different things: cached apart.
+    let key = format!("{}|{path}?{query:?}", token.is_some());
+    let cached = conditional
+        .then(|| CACHE.lock().unwrap().as_ref()?.get(&key).cloned())
+        .flatten();
+    if let Some((etag, _)) = &cached {
+        req = req.header("If-None-Match", etag);
+    }
     let mut res = req.call().map_err(|_| Error::Network)?;
 
     let status = res.status().as_u16();
-    let header = |name: &str| {
+    let text = |name: &str| {
         res.headers()
             .get(name)
             .and_then(|h| h.to_str().ok())
-            .and_then(|s| s.trim().parse::<u64>().ok())
+            .map(|s| s.trim().to_string())
     };
+    let number = |name: &str| text(name).and_then(|s| s.parse::<u64>().ok());
+    let remaining = number("x-ratelimit-remaining");
+    let reset = number("x-ratelimit-reset");
+    let retry_after = number("retry-after");
+    let etag = text("etag");
+    let resource = text("x-ratelimit-resource")
+        .and_then(|r| Resource::named(&r))
+        .unwrap_or(Resource::of_path(path));
+    if let (Some(remaining), Some(reset)) = (remaining, reset) {
+        set_budget(
+            resource,
+            Budget {
+                remaining,
+                reset_ms: reset * 1000,
+            },
+        );
+    }
+
     match status {
-        200 => {}
+        200 | 304 => STRIKES.store(0, Ordering::Relaxed),
         401 => return Err(Error::Unauthorized),
         404 | 422 => return Err(Error::NotFound),
         403 | 429 => {
-            let until = header("retry-after")
-                .map(|secs| now_ms() + secs * 1000)
-                .or_else(|| {
-                    let exhausted = header("x-ratelimit-remaining") == Some(0);
-                    header("x-ratelimit-reset")
-                        .filter(|_| exhausted)
-                        .map(|secs| secs * 1000)
-                })
-                // Secondary limits don't always say when; back off a minute.
-                .unwrap_or_else(|| now_ms() + 60_000);
-            return Err(Error::RateLimited(until));
+            let body = res.body_mut().read_to_string().unwrap_or_default();
+            let strikes = STRIKES.load(Ordering::Relaxed);
+            let until = limited_until(
+                status,
+                retry_after,
+                remaining,
+                reset,
+                body.to_lowercase().contains("rate limit"),
+                now_ms(),
+                strikes,
+            );
+            return match until {
+                Some(until) => {
+                    // Only a limit GitHub didn't put a time on grows the next wait.
+                    if retry_after.is_none() && remaining != Some(0) {
+                        STRIKES.store(strikes + 1, Ordering::Relaxed);
+                    }
+                    Err(Error::RateLimited(until))
+                }
+                None => Err(Error::Http),
+            };
         }
         _ => return Err(Error::Http),
+    }
+    if status == 304 {
+        return cached.map(|(_, body)| body).ok_or(Error::Http);
     }
     let body = res
         .body_mut()
         .read_to_string()
         .map_err(|_| Error::Network)?;
-    serde_json::from_str(&body).map_err(|_| Error::Http)
+    let value: Value = serde_json::from_str(&body).map_err(|_| Error::Http)?;
+    if conditional && let Some(etag) = etag {
+        let mut cache = CACHE.lock().unwrap();
+        let cache = cache.get_or_insert_with(HashMap::new);
+        if cache.len() >= MAX_CACHED {
+            cache.clear();
+        }
+        cache.insert(key, (etag, value.clone()));
+    }
+    Ok(value)
 }
 
 /// Open issues (pull requests excluded) and the newest one.
@@ -284,6 +479,109 @@ fn parse_commit(v: &Value) -> Option<Commit> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn requests_go_to_their_bucket() {
+        assert_eq!(Resource::of_path("/search/issues"), Resource::Search);
+        assert_eq!(Resource::of_path("/repos/o/r"), Resource::Core);
+        assert_eq!(Resource::named("search"), Some(Resource::Search));
+        assert_eq!(Resource::named("graphql"), None);
+    }
+
+    #[test]
+    fn reads_the_rate_limit_endpoint() {
+        let mut got = parse_rate_limit(&json!({ "resources": {
+            "core": { "limit": 60, "remaining": 12, "reset": 1_800_000_000u64 },
+            "search": { "limit": 10, "remaining": 0, "reset": 1_800_000_060u64 },
+            "graphql": { "limit": 0, "remaining": 0, "reset": 1 }
+        }}));
+        got.sort_by_key(|(r, _)| *r == Resource::Search);
+        assert_eq!(
+            got,
+            [
+                (
+                    Resource::Core,
+                    Budget {
+                        remaining: 12,
+                        reset_ms: 1_800_000_000_000
+                    }
+                ),
+                (
+                    Resource::Search,
+                    Budget {
+                        remaining: 0,
+                        reset_ms: 1_800_000_060_000
+                    }
+                ),
+            ]
+        );
+        assert!(parse_rate_limit(&json!({ "message": "nope" })).is_empty());
+    }
+
+    #[test]
+    fn rate_limit_answers() {
+        let now = 1_000_000;
+        // retry-after wins.
+        assert_eq!(
+            limited_until(403, Some(30), Some(0), Some(5_000), true, now, 0),
+            Some(now + 30_000)
+        );
+        // Primary limit: until the bucket resets.
+        assert_eq!(
+            limited_until(403, None, Some(0), Some(2_000), false, now, 0),
+            Some(2_000_000)
+        );
+        // Already reset by the time it's read: a second, not the past.
+        assert_eq!(
+            limited_until(429, None, Some(0), Some(10), false, now, 0),
+            Some(now + 1000)
+        );
+        // Secondary limit with no time: a minute, then longer each time in a row.
+        assert_eq!(
+            limited_until(403, None, Some(40), Some(2_000), true, now, 0),
+            Some(now + 60_000)
+        );
+        assert_eq!(
+            limited_until(429, None, None, None, false, now, 2),
+            Some(now + 240_000)
+        );
+        assert_eq!(
+            limited_until(429, None, None, None, false, now, 40),
+            Some(now + 60_000 * 32)
+        );
+        // A 403 that isn't a limit (no permission) is just an error.
+        assert_eq!(
+            limited_until(403, None, Some(40), Some(2_000), false, now, 0),
+            None
+        );
+    }
+
+    #[test]
+    fn an_empty_bucket_is_not_called() {
+        set_budget(
+            Resource::Search,
+            Budget {
+                remaining: 0,
+                reset_ms: now_ms() + 60_000,
+            },
+        );
+        assert!(!affordable(Resource::Search, 1));
+        // Refused before any network call (the path doesn't even exist).
+        assert!(matches!(
+            get("/search/nothing", &[], None),
+            Err(Error::RateLimited(_))
+        ));
+        // Once the reset time has passed, the old numbers no longer count.
+        set_budget(
+            Resource::Search,
+            Budget {
+                remaining: 0,
+                reset_ms: now_ms() - 1,
+            },
+        );
+        assert!(budget(Resource::Search).is_none());
+        assert!(affordable(Resource::Search, 1));
+    }
 
     #[test]
     fn reads_a_repository() {

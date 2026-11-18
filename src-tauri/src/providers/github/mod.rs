@@ -42,6 +42,17 @@ const MAX_UPDATES: usize = 10;
 /// Without a login GitHub allows 60 calls an hour: a repository's details
 /// (3 calls) are then refreshed this rarely. Signed in, every round.
 const ANON_DETAILS_MS: u64 = 30 * 60 * 1000;
+/// Calls a repository's details take (`details`).
+const DETAIL_CALLS: u64 = 3;
+/// Calls kept back from the hourly budget for the settings window (token
+/// check, branch picker).
+const CORE_RESERVE: u64 = 5;
+/// The search API allows 10 calls a minute signed out, 30 signed in: one
+/// search per repository, spaced to stay under it.
+const SEARCH_GAP_ANON_MS: u64 = 6_100;
+const SEARCH_GAP_SIGNED_IN_MS: u64 = 2_100;
+/// An empty search bucket resetting within this long is waited for; later, the round stops.
+const MAX_SEARCH_WAIT_MS: u64 = 70_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -150,6 +161,7 @@ impl Provider for GithubProvider {
                 state: GithubState::default(),
                 signature: String::new(),
                 last_round: 0,
+                last_search: 0,
                 auth_dirty: true,
             };
             let mut next_at = 0u64;
@@ -171,13 +183,17 @@ impl Provider for GithubProvider {
                         w.reorder(&repos);
                         continue;
                     }
-                    Some(Wake::Refresh)
-                        if now_ms().saturating_sub(w.last_round) < MIN_REFRESH_GAP_MS =>
-                    {
-                        continue;
-                    }
                     Some(Wake::Auth) => w.auth_dirty = true,
                     _ => {}
+                }
+                // Asked too soon after the last round (a refresh, repos added one
+                // by one, a new token): it runs once the gap is over, not now.
+                if reason.is_some() {
+                    let soonest = w.last_round + MIN_REFRESH_GAP_MS;
+                    if soonest > now_ms() {
+                        next_at = next_at.min(soonest);
+                        continue;
+                    }
                 }
                 w.signature = signature;
                 if enabled {
@@ -235,6 +251,8 @@ struct Worker {
     /// Module switch + repo list at the last round, to skip unrelated settings changes.
     signature: String,
     last_round: u64,
+    /// When the last search call went out, to space them.
+    last_search: u64,
     auth_dirty: bool,
 }
 
@@ -320,6 +338,9 @@ impl Worker {
         if self.state.auth_error {
             token = None;
         }
+        // What's left of each limit, as GitHub counts it (free to ask): after a
+        // restart, or with other apps on the same IP or token, nothing is assumed.
+        let _ = api::rate_limit(token.as_deref());
 
         // Keep what we know about repos still in the list, in the user's order.
         let mut previous = std::mem::take(&mut self.state.repos);
@@ -349,6 +370,7 @@ impl Worker {
                 break;
             }
             let name = self.state.repos[i].name.clone();
+            self.pace_search(token.is_some());
             match api::repo_issues(&name, token.as_deref()) {
                 Ok(found) => {
                     let repo = &mut self.state.repos[i];
@@ -366,8 +388,10 @@ impl Worker {
                     repo.open_issues = Some(found.open);
                     repo.latest = found.latest;
                     repo.error = None;
-                    let due = token.is_some()
-                        || now_ms().saturating_sub(repo.details_at) > ANON_DETAILS_MS;
+                    let due = (token.is_some()
+                        || now_ms().saturating_sub(repo.details_at) > ANON_DETAILS_MS)
+                        // Out of calls for the hour: the details wait for a later round.
+                        && api::affordable(api::Resource::Core, DETAIL_CALLS + CORE_RESERVE);
                     if due
                         && let Err(api::Error::RateLimited(until)) =
                             self.details(i, token.as_deref())
@@ -395,6 +419,22 @@ impl Worker {
 }
 
 impl Worker {
+    /// Waits so searches stay under the search API's per-minute limit, and for
+    /// an empty search bucket that resets soon.
+    fn pace_search(&mut self, signed_in: bool) {
+        let now = now_ms();
+        let at = search_at(
+            now,
+            self.last_search,
+            signed_in,
+            api::budget(api::Resource::Search),
+        );
+        if at > now {
+            std::thread::sleep(Duration::from_millis(at - now));
+        }
+        self.last_search = now_ms();
+    }
+
     /// Stars, forks, the latest release and commit of `repos[i]`, and news
     /// when the release or the commit changed. Other errors leave the last
     /// known details in place.
@@ -419,6 +459,25 @@ impl Worker {
         self.state.updates.truncate(MAX_UPDATES);
         Ok(())
     }
+}
+
+/// When the next search may go out: a gap after the last one, or just after
+/// an empty bucket resets (when that's soon; otherwise the call is refused
+/// and the round stops until then).
+fn search_at(now: u64, last: u64, signed_in: bool, budget: Option<api::Budget>) -> u64 {
+    let gap = if signed_in {
+        SEARCH_GAP_SIGNED_IN_MS
+    } else {
+        SEARCH_GAP_ANON_MS
+    };
+    let mut at = last + gap;
+    if let Some(b) = budget
+        && b.remaining == 0
+        && b.reset_ms.saturating_sub(now) <= MAX_SEARCH_WAIT_MS
+    {
+        at = at.max(b.reset_ms + 1000);
+    }
+    at.max(now)
 }
 
 /// What changed since `repo`'s details were last read. Nothing the first time:
@@ -566,6 +625,47 @@ mod tests {
         // Same branch: kept as is.
         let same = follow(known(Some("v1"), "aaa"), "o/r", &None);
         assert!(same.commit.is_some());
+    }
+
+    #[test]
+    fn searches_are_spaced_to_the_per_minute_limit() {
+        let now = 100_000;
+        // Signed out: 10 a minute.
+        assert_eq!(
+            search_at(now, now - 1_000, false, None),
+            now - 1_000 + 6_100
+        );
+        assert_eq!(search_at(now, now - 10_000, false, None), now);
+        // Signed in: 30 a minute.
+        assert_eq!(search_at(now, now - 1_000, true, None), now - 1_000 + 2_100);
+        // 11 searches in a row signed out take over a minute: never more than 10 in one.
+        let mut t = 0;
+        let mut times = vec![];
+        for _ in 0..11 {
+            t = search_at(t, t, false, None);
+            times.push(t);
+        }
+        assert!(times[10] - times[0] >= 60_000);
+    }
+
+    #[test]
+    fn an_empty_search_bucket_is_waited_for_only_when_it_resets_soon() {
+        let now = 100_000;
+        let empty = |in_ms| {
+            Some(api::Budget {
+                remaining: 0,
+                reset_ms: now + in_ms,
+            })
+        };
+        assert_eq!(search_at(now, 0, true, empty(30_000)), now + 31_000);
+        // Far off: no wait here (the call is refused and the round stops).
+        assert_eq!(search_at(now, 0, true, empty(30 * 60_000)), now);
+        // Calls left: just the gap.
+        let left = Some(api::Budget {
+            remaining: 3,
+            reset_ms: now + 30_000,
+        });
+        assert_eq!(search_at(now, 0, true, left), now);
     }
 
     #[test]
