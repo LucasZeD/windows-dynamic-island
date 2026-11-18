@@ -12,6 +12,11 @@ export const codexAgent: AgentDefinition = {
 	name: "Codex",
 	color: "#8B9CFF",
 	Icon: CodexIcon,
+	// OpenAI's knot turning a sixth at a time, like a dial.
+	working: {
+		animate: { rotate: [0, 60, 120, 180, 240, 300, 360] },
+		transition: { rotate: { duration: 2.4, repeat: Infinity, ease: "anticipate" } },
+	},
 	useAgent: useCodex,
 	usageUrl: "https://chatgpt.com/codex/settings/usage",
 	openApp: () => providerAction("codex", "openApp"),

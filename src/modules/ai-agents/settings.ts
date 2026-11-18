@@ -27,6 +27,13 @@ export const agentSettings = {
 	},
 } satisfies Record<string, SettingDef>;
 
+/** The agent tab opened last in the panel; the island shows its icon while no agent is busy. */
+export const agentLastTab: SettingDef<string | null> = {
+	key: "agents.lastTab",
+	label: "agents.title",
+	default: null,
+};
+
 /**
  * Sounds for a session that finished or asks for permission, with the audio
  * file to play (`null`: the one shipped with the app). Read by the backend

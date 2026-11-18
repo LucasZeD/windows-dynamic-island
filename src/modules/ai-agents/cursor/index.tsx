@@ -13,6 +13,11 @@ export const cursorAgent: AgentDefinition = {
 	name: "Cursor",
 	color: CURSOR_COLOR,
 	Icon: CursorIcon,
+	// The cube flipping on its axis.
+	working: {
+		animate: { rotateY: 360 },
+		transition: { rotateY: { duration: 1.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.25 } },
+	},
 	useAgent: useCursor,
 	usageUrl: "https://cursor.com/dashboard?tab=usage",
 	openApp: openCursor,

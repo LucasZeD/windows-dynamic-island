@@ -12,6 +12,14 @@ export const claudeAgent: AgentDefinition = {
 	name: "Claude",
 	color: "#D97757",
 	Icon: ClaudeIcon,
+	// Claude Code's own spinner: the starburst turning and breathing.
+	working: {
+		animate: { rotate: 360, scale: [1, 0.78, 1] },
+		transition: {
+			rotate: { duration: 2.6, repeat: Infinity, ease: "linear" },
+			scale: { duration: 1.3, repeat: Infinity, ease: "easeInOut" },
+		},
+	},
 	useAgent: useClaude,
 	usageUrl: "https://claude.ai/settings/usage",
 	openSession: (session) => {

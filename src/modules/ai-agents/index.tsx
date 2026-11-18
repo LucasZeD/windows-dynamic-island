@@ -25,7 +25,7 @@ import { useNow } from "./common/format";
 import { pickPrimary } from "./common/primary";
 import type { AgentDefinition, AgentSessionRef, AgentStatus } from "./common/types";
 import { cursorAgent } from "./cursor";
-import { agentSettings } from "./settings";
+import { agentLastTab, agentSettings } from "./settings";
 
 const agents: AgentDefinition[] = [claudeAgent, codexAgent, cursorAgent, antigravityAgent];
 
@@ -91,7 +91,9 @@ export const aiAgentsModule: IslandModule = {
 			.filter((s) => s.session.status !== "idle" || now - s.session.lastEventAt < RECENT_MS)
 			.slice(0, 4);
 
-		const primary = pickPrimary(visible, snapshots);
+		// While none is busy, the island shows the agent whose tab was opened last.
+		const lastTab = useSetting(agentLastTab);
+		const primary = visible.find((a) => a.id === lastTab) ?? pickPrimary(visible, snapshots);
 		const asking = sessions.some((s) => s.session.permission && s.agent.decide);
 
 		return {

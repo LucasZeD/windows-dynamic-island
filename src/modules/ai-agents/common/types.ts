@@ -1,3 +1,4 @@
+import type { TargetAndTransition, Transition } from "motion/react";
 import type { ComponentType, ReactNode } from "react";
 
 /**
@@ -10,6 +11,8 @@ export interface AgentDefinition {
 	/** Brand-ish accent used for icons, bars and highlights. */
 	color: string;
 	Icon: (props: { size: number; state?: AgentStatus }) => ReactNode;
+	/** How the icon moves while the agent works (default: a slow spin). */
+	working?: { animate: TargetAndTransition; transition: Transition };
 	/** React hook returning the agent's live snapshot. */
 	useAgent: () => AgentSnapshot;
 	/** Web page with the plan's usage; clicking the limits opens it. */

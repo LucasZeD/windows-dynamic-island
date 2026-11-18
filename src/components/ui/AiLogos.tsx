@@ -2,7 +2,7 @@ import { useId } from "react";
 
 /**
  * The real logos of the "Ask" chats, from Simple Icons (CC0,
- * https://simpleicons.org): Claude, OpenAI (ChatGPT) and Google Gemini.
+ * https://simpleicons.org): Claude, OpenAI (ChatGPT, Codex) and Google Gemini.
  */
 
 const CLAUDE =
@@ -25,6 +25,15 @@ export function ChatGptLogo({ size = 14 }: { size?: number }) {
 		<svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
 			{/* The theme's ink: white on the dark island, black on the light one. */}
 			<path d={OPENAI} fill="var(--color-white, #fff)" />
+		</svg>
+	);
+}
+
+/** OpenAI's mark in any color (`currentColor` by default): Codex's icon. */
+export function OpenAiMark({ size = 14, color = "currentColor" }: { size?: number; color?: string }) {
+	return (
+		<svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+			<path d={OPENAI} fill={color} />
 		</svg>
 	);
 }

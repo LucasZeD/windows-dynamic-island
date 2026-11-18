@@ -62,8 +62,18 @@ export function StatusDot({ status, color, size = 14 }: { status: AgentStatus; c
 	);
 }
 
+/** Back to rest from any agent's animation. */
+const REST = { rotate: 0, rotateY: 0, scale: 1, y: 0, opacity: 1 };
+
+/** The working animation of an agent that doesn't bring its own. */
+const SPIN = {
+	animate: { rotate: 360 },
+	transition: { rotate: { duration: 3.2, repeat: Infinity, ease: "linear" } },
+} as const;
+
 /**
- * Agent icon with a state animation: slow spin while working, a pulsing
+ * Agent icon with a state animation: the agent's own while working (a slow
+ * spin by default), a pulsing
  * amber halo while waiting for the user, a green check pop when done.
  */
 export function StatusGlyph({
@@ -75,8 +85,12 @@ export function StatusGlyph({
 	status: AgentStatus;
 	size?: number;
 }) {
+	const working = agent.working ?? SPIN;
 	return (
-		<div className="relative grid flex-none place-items-center" style={{ width: size, height: size }}>
+		<div
+			className="relative grid flex-none place-items-center"
+			style={{ width: size, height: size, perspective: size * 4 }}
+		>
 			{status === "waiting" && (
 				<motion.span
 					className="absolute inset-0 rounded-full bg-warn"
@@ -87,15 +101,11 @@ export function StatusGlyph({
 			<motion.div
 				style={{ display: "grid", color: agent.color }}
 				animate={
-					status === "working"
-						? { rotate: 360, scale: 1 }
-						: status === "waiting"
-							? { rotate: 0, scale: [1, 1.12, 1] }
-							: { rotate: 0, scale: 1 }
+					status === "working" ? working.animate : status === "waiting" ? { ...REST, scale: [1, 1.12, 1] } : REST
 				}
 				transition={
 					status === "working"
-						? { rotate: { duration: 3.2, repeat: Infinity, ease: "linear" } }
+						? working.transition
 						: status === "waiting"
 							? { scale: { duration: 1.3, repeat: Infinity } }
 							: { type: "spring", stiffness: 300, damping: 20 }
