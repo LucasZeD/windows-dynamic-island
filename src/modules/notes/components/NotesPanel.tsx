@@ -165,8 +165,10 @@ export function NotesPanel({ state }: { state: NotesState | undefined }) {
 
 	function takeKeyboard() {
 		// A click back in after one outside: the editor may still have the focus, so no focus event.
+		// Always ask: the page can believe it has the keyboard (`document.hasFocus()`) while
+		// Windows still sends the keys to the app in front. The backend skips it when it has.
 		hold();
-		if (!document.hasFocus()) command("focus_island");
+		command("focus_island");
 	}
 
 	function onEscape() {

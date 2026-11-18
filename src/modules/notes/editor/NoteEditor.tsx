@@ -211,9 +211,10 @@ export function NoteEditor({ path, host, placeholderText, onStatus, onEscape }: 
 	}, [path]);
 
 	// The panel asks for the window's focus on this press (`focus_island`); the
-	// caret comes back once the window has it.
+	// caret comes back once the window has it. Not gated on `document.hasFocus()`,
+	// which can be true while the keyboard still goes to another app.
 	const onMouseDown = () => {
-		if (!document.hasFocus()) window.setTimeout(() => view.current?.focus(), 40);
+		window.setTimeout(() => view.current?.focus(), 40);
 	};
 
 	// data-scroll: the wheel scrolls the note instead of switching tabs.
