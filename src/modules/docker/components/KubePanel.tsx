@@ -13,7 +13,12 @@ import { Field, Grid, Heading, LogView, Message, usePolled } from "./common";
 const EVERY = 10_000;
 
 function podTone(p: Pod): Tone {
-	if (p.phase === "Failed" || p.containers.some((c) => c.reason && /BackOff|Err|OOM/i.test(c.reason))) return "bad";
+	if (
+		p.phase === "Failed" ||
+		p.reason === "Unschedulable" ||
+		p.containers.some((c) => c.reason && /BackOff|Err|OOM/i.test(c.reason))
+	)
+		return "bad";
 	if (p.phase === "Succeeded") return "off";
 	if (p.phase === "Pending" || p.containers.some((c) => !c.ready)) return "warn";
 	return "ok";
@@ -75,7 +80,8 @@ function PodRow({ pod: p, now, unfolded }: { pod: Pod; now: number; unfolded: bo
 	const t = useT();
 	const ready = p.containers.filter((c) => c.ready).length;
 	const restarts = p.containers.reduce((n, c) => n + c.restarts, 0);
-	const reason = p.containers.find((c) => c.reason)?.reason;
+	// A container's trouble (CrashLoopBackOff) says more than the pod's phase.
+	const reason = p.containers.find((c) => c.reason && c.reason !== "Completed")?.reason ?? p.reason;
 	const tone = podTone(p);
 	const key = `${p.namespace}/${p.name}`;
 
@@ -142,6 +148,7 @@ function PodDetails({ pod: p }: { pod: Pod }) {
 		<div className="flex h-[260px] flex-col gap-1.5 px-3 pb-2.5 select-text">
 			<Grid>
 				{p.node && <Field label={t("docker.kube.node")}>{p.node}</Field>}
+				{p.message && <Field label={p.reason ?? t("docker.status")}>{p.message}</Field>}
 				{p.ip && (
 					<Field label="IP" mono>
 						{p.ip}

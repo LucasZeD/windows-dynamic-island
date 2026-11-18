@@ -7,13 +7,13 @@
  * toast, and keeps the compact island while it's unhealthy or restarting.
  * Backend: `src-tauri/src/providers/docker/`.
  */
-import { ContainerIcon } from "lucide-react";
 import { useProvider } from "../../core/bridge";
 import { useT } from "../../core/i18n";
 import { useSetting } from "../../core/settings";
 import type { IslandModule, ModuleView } from "../../core/types";
 import { useNow } from "../ai-agents/common/format";
 import { DockerPanel } from "./components/DockerPanel";
+import { DockerLogo } from "./components/Logos";
 import { dockerSettings } from "./settings";
 import {
 	displayName,
@@ -33,7 +33,7 @@ const WIDTH = 640;
 export const dockerModule: IslandModule = {
 	id: "docker",
 	title: "docker.title",
-	settingsIcon: <ContainerIcon size={14} />,
+	settingsIcon: <DockerLogo size={15} />,
 	settings: Object.values(dockerSettings),
 	useView(): ModuleView {
 		const t = useT();
@@ -60,10 +60,10 @@ export const dockerModule: IslandModule = {
 			active: trouble != null,
 			priority: 4,
 			accent: DOCKER_ACCENT,
-			icon: <ContainerIcon size={15} color={DOCKER_ACCENT} />,
+			icon: <DockerLogo size={16} />,
 			compact: trouble
 				? {
-						left: <ContainerIcon size={15} color="var(--color-danger)" />,
+						left: <DockerLogo size={16} />,
 						right: (
 							<span className="truncate text-[12.5px] font-semibold text-danger">
 								{displayName(trouble)} · {troubleText}
@@ -80,7 +80,7 @@ export const dockerModule: IslandModule = {
 						kind: "toast",
 						content: (
 							<>
-								<ContainerIcon size={15} color="var(--color-danger)" />
+								<DockerLogo size={16} />
 								<span className="truncate text-[13px] font-semibold">
 									{t(`docker.toast.${event.kind}`, { name: event.container, code: event.exitCode })}
 								</span>

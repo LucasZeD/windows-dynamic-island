@@ -176,6 +176,8 @@ const cluster: Cluster = {
 			ip: "10.1.0.5",
 			createdAt: Date.now() - 50 * MIN,
 			owner: "Deployment/api",
+			reason: null,
+			message: null,
 			containers: [
 				{
 					name: "api",
@@ -196,6 +198,8 @@ const cluster: Cluster = {
 			ip: "10.1.0.2",
 			createdAt: Date.now() - 3 * 24 * 60 * MIN,
 			owner: "Deployment/coredns",
+			reason: null,
+			message: null,
 			containers: [
 				{
 					name: "coredns",

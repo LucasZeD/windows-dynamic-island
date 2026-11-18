@@ -9,7 +9,7 @@ import {
 	SquareIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { IconButton } from "../../../components/ui/button";
 import { providerAction } from "../../../core/bridge";
 import { cn } from "../../../core/cn";
@@ -22,6 +22,7 @@ import { DOCKER_PROVIDER, type DockerContainer, type DockerState } from "../type
 import { ContainerDetails, PortLink } from "./ContainerDetails";
 import { Message } from "./common";
 import { KubePanel } from "./KubePanel";
+import { DockerLogo, KubernetesLogo } from "./Logos";
 
 const scrollbar =
 	"[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/14";
@@ -61,23 +62,24 @@ export function DockerPanel({ state }: { state: DockerState | undefined }) {
 
 function Switch({ view }: { view: View }) {
 	const t = useT();
-	const item = (v: View, label: string) => (
+	const item = (v: View, label: string, logo: ReactNode) => (
 		<button
 			type="button"
 			aria-pressed={view === v}
 			onClick={() => setUi({ view: v, unfolded: null })}
 			className={cn(
-				"rounded-full px-2.5 py-0.5 text-[12px] font-semibold transition-colors",
+				"flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold transition-colors",
 				view === v ? "bg-white/14 text-text" : "text-text-faint hover:text-text-dim",
 			)}
 		>
+			{logo}
 			{label}
 		</button>
 	);
 	return (
 		<div className="flex flex-none gap-0.5 rounded-full bg-white/6 p-0.5">
-			{item("containers", t("docker.containers"))}
-			{item("kube", t("docker.kubernetes"))}
+			{item("containers", t("docker.containers"), <DockerLogo size={13} />)}
+			{item("kube", t("docker.kubernetes"), <KubernetesLogo size={13} />)}
 		</div>
 	);
 }
