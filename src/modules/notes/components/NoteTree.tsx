@@ -93,7 +93,9 @@ export function NoteTree({ tree, active, expanded, renaming, setRenaming, action
 	const dragging = drag?.started ? drag : null;
 
 	return (
+		// data-scroll: the wheel scrolls the tree instead of switching tabs.
 		<div
+			data-scroll
 			className={cn(
 				"notes-scroll flex min-h-0 flex-1 flex-col overflow-y-auto pb-6",
 				dragging?.target === "" && "rounded-lg bg-white/5",

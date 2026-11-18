@@ -216,5 +216,8 @@ export function NoteEditor({ path, host, placeholderText, onStatus, onEscape }: 
 		if (!document.hasFocus()) window.setTimeout(() => view.current?.focus(), 40);
 	};
 
-	return <div ref={parent} className="notes-editor h-full min-h-0" onMouseDown={onMouseDown} data-no-drag />;
+	// data-scroll: the wheel scrolls the note instead of switching tabs.
+	return (
+		<div ref={parent} className="notes-editor h-full min-h-0" onMouseDown={onMouseDown} data-no-drag data-scroll />
+	);
 }
