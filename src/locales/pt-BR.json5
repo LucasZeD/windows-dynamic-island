@@ -63,6 +63,14 @@
       version: "Versão {version}",
       source: "Código-fonte",
       license: "Licença",
+      build: {
+        label: "Build",
+        desc: "{commit} em {branch}, gerada em {date}",
+        dirty: "com alterações não commitadas",
+        unknown: "Não gerada a partir de um checkout git",
+        copy: "Copiar",
+        copied: "Copiado",
+      },
       updates: {
         label: "Atualizações",
         idle: "Verifica se há uma nova versão.",

@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
@@ -7,10 +8,27 @@ import { locales } from "./vite-plugin-locales.ts";
 
 const { version } = JSON.parse(readFileSync("package.json", "utf8"));
 
+/** Which code this build is: the commit, its branch, whether files were changed, and when. */
+function buildInfo() {
+	const git = (args: string) => {
+		try {
+			return execSync(`git ${args}`, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+		} catch {
+			return "";
+		}
+	};
+	return {
+		commit: git("rev-parse --short HEAD") || null,
+		branch: git("rev-parse --abbrev-ref HEAD") || null,
+		dirty: git("status --porcelain --untracked-files=no") !== "",
+		date: new Date().toISOString(),
+	};
+}
+
 // https://v2.tauri.app/start/frontend/vite/
 export default defineConfig({
 	plugins: [react(), tailwindcss(), locales(), islandPlugins()],
-	define: { __APP_VERSION__: JSON.stringify(version) },
+	define: { __APP_VERSION__: JSON.stringify(version), __APP_BUILD__: JSON.stringify(buildInfo()) },
 	clearScreen: false,
 	server: {
 		port: 1420,

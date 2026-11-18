@@ -73,6 +73,15 @@
       version: "Version {version}",
       source: "Source code",
       license: "License",
+      build: {
+        label: "Build",
+        // {commit}: short commit id, e.g. 061de3a; {branch}: git branch, e.g. develop; {date}: when it was built
+        desc: "{commit} on {branch}, built {date}",
+        dirty: "with uncommitted changes",
+        unknown: "Not built from a git checkout",
+        copy: "Copy",
+        copied: "Copied",
+      },
       updates: {
         label: "Updates",
         idle: "Check whether a new version is out.",
